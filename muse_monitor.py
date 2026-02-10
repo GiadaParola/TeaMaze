@@ -1,0 +1,267 @@
+import sys
+import numpy as np
+from scipy.signal import welch
+
+import pyqtgraph as pg
+from pyqtgraph.Qt import QtCore, QtWidgets
+from pylsl import StreamInlet, resolve_byprop, resolve_streams
+
+# ---------------------------------------------------------------------------
+# CONFIGURAZIONE
+# ---------------------------------------------------------------------------
+
+EEG_WINDOW_S = 5
+MOTION_WINDOW_S = 5
+
+FS_EEG = 256
+FS_MOTION = 52
+
+REFRESH_MS = 40
+
+EEG_CH_NAMES = ["TP9", "AF7", "AF8", "TP10"]
+EEG_CH_COLORS = ["#636EFA", "#EF553B", "#00CC96", "#AB63FA"]
+
+ACCEL_LABELS = ["X", "Y", "Z"]
+GYRO_LABELS = ["X", "Y", "Z"]
+MOTION_COLORS = ["#EF553B", "#00CC96", "#636EFA"]
+
+BANDS = {
+    "Delta": (1, 4),
+    "Theta": (4, 8),
+    "Alpha": (8, 13),
+    "Beta":  (13, 30),
+}
+BAND_COLORS = ["#636EFA", "#EF553B", "#00CC96", "#AB63FA"]
+
+# ---------------------------------------------------------------------------
+# LSL
+# ---------------------------------------------------------------------------
+
+def resolve_muse_stream(stream_type, timeout=3.0):
+    streams = resolve_byprop("type", stream_type, timeout=timeout)
+    if streams:
+        inlet = StreamInlet(streams[0], max_buflen=360, processing_flags=1)
+        print(f"✅ {stream_type} connesso")
+        return inlet
+    print(f"⚠️  {stream_type} non trovato")
+    return None
+
+# ---------------------------------------------------------------------------
+# RING BUFFER
+# ---------------------------------------------------------------------------
+
+class RingBuffer:
+    def __init__(self, max_samples, n_channels):
+        self.max_samples = max_samples
+        self.n_channels = n_channels
+        self.data = np.zeros((max_samples, n_channels))
+        self.write_pos = 0
+        self.full = False
+
+    def append(self, samples):
+        n = samples.shape[0]
+        if n == 0:
+            return
+
+        if n >= self.max_samples:
+            self.data[:] = samples[-self.max_samples:]
+            self.write_pos = 0
+            self.full = True
+            return
+
+        end = self.write_pos + n
+        if end <= self.max_samples:
+            self.data[self.write_pos:end] = samples
+        else:
+            first = self.max_samples - self.write_pos
+            self.data[self.write_pos:] = samples[:first]
+            self.data[:n - first] = samples[first:]
+            self.full = True
+
+        self.write_pos = end % self.max_samples
+        if end >= self.max_samples:
+            self.full = True
+
+    def get(self):
+        if not self.full:
+            return self.data[:self.write_pos]
+        return np.roll(self.data, -self.write_pos, axis=0)
+
+# ---------------------------------------------------------------------------
+# GUI
+# ---------------------------------------------------------------------------
+
+class MuseMonitor(QtWidgets.QMainWindow):
+
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Muse 2 — EEG + Movimento")
+        self.resize(1400, 900)
+
+        print("\n🔍 Ricerca stream LSL...\n")
+        self.inlet_eeg = resolve_muse_stream("EEG")
+        self.inlet_accel = resolve_muse_stream("Accelerometer")
+        self.inlet_gyro = resolve_muse_stream("Gyroscope")
+
+        if not any([self.inlet_eeg, self.inlet_accel, self.inlet_gyro]):
+            print("\n❌ Nessuno stream trovato")
+            for s in resolve_streams():
+                print(f"- {s.name()} ({s.type()})")
+            sys.exit(1)
+
+        self.buf_eeg = RingBuffer(FS_EEG * EEG_WINDOW_S, 4)
+        self.buf_eeg_fft = RingBuffer(FS_EEG * 2, 4)
+
+        self.buf_accel = RingBuffer(FS_MOTION * MOTION_WINDOW_S, 3)
+        self.buf_gyro = RingBuffer(FS_MOTION * MOTION_WINDOW_S, 3)
+
+        self._build_ui()
+
+        self.timer = QtCore.QTimer()
+        self.timer.timeout.connect(self._update)
+        self.timer.start(REFRESH_MS)
+
+        self.samples = 0
+
+    # ---------------------------------------------------------------------
+
+    def _build_ui(self):
+        pg.setConfigOptions(background="#1e1e2e", foreground="#cdd6f4")
+
+        central = QtWidgets.QWidget()
+        self.setCentralWidget(central)
+        layout = QtWidgets.QVBoxLayout(central)
+
+        # EEG
+        self.pw_eeg = pg.PlotWidget(title="EEG (µV)")
+        self.pw_eeg.addLegend()
+        self.pw_eeg.showGrid(x=True, y=True)
+        self.eeg_curves = [
+            self.pw_eeg.plot(pen=pg.mkPen(c, width=1), name=n)
+            for n, c in zip(EEG_CH_NAMES, EEG_CH_COLORS)
+        ]
+        layout.addWidget(self.pw_eeg)
+
+        # Bande
+        self.pw_bands = pg.PlotWidget(title="Potenza bande EEG")
+        self.band_bars = pg.BarGraphItem(
+            x=np.arange(len(BANDS)),
+            height=np.zeros(len(BANDS)),
+            width=0.6,
+            brushes=[pg.mkBrush(c) for c in BAND_COLORS]
+        )
+        self.pw_bands.addItem(self.band_bars)
+        self.pw_bands.setYRange(0, 1)
+        self.pw_bands.getAxis("bottom").setTicks([list(enumerate(BANDS.keys()))])
+        layout.addWidget(self.pw_bands)
+
+        # Accelerometro
+        self.pw_accel = pg.PlotWidget(title="Accelerometro (g)")
+        self.pw_accel.addLegend()
+        self.pw_accel.showGrid(x=True, y=True)
+        self.accel_curves = [
+            self.pw_accel.plot(pen=pg.mkPen(c, width=1.5), name=l)
+            for l, c in zip(ACCEL_LABELS, MOTION_COLORS)
+        ]
+        layout.addWidget(self.pw_accel)
+
+        # Giroscopio
+        self.pw_gyro = pg.PlotWidget(title="Giroscopio (°/s)")
+        self.pw_gyro.addLegend()
+        self.pw_gyro.showGrid(x=True, y=True)
+        self.gyro_curves = [
+            self.pw_gyro.plot(pen=pg.mkPen(c, width=1.5), name=l)
+            for l, c in zip(GYRO_LABELS, MOTION_COLORS)
+        ]
+        layout.addWidget(self.pw_gyro)
+
+        self.status = self.statusBar()
+
+    # ---------------------------------------------------------------------
+
+    def _pull(self, inlet, buf):
+        if inlet is None:
+            return 0
+
+        samples = []
+        while True:
+            sample, _ = inlet.pull_sample(timeout=0.0)
+            if sample is None:
+                break
+            sample = sample[:buf.n_channels]  # FIX Muse 2
+            samples.append(sample)
+
+        if samples:
+            buf.append(np.array(samples))
+        return len(samples)
+
+    # ---------------------------------------------------------------------
+
+    def _band_powers(self):
+        data = self.buf_eeg_fft.get()
+        if len(data) < FS_EEG:
+            return np.zeros(len(BANDS))
+
+        powers = np.zeros(len(BANDS))
+        total = 0
+
+        for ch in range(4):
+            freqs, psd = welch(data[:, ch], FS_EEG, nperseg=256)
+            for i, (f1, f2) in enumerate(BANDS.values()):
+                powers[i] += psd[(freqs >= f1) & (freqs <= f2)].sum()
+            total += psd[(freqs >= 1) & (freqs <= 40)].sum()
+
+        return powers / total if total > 0 else powers
+
+    # ---------------------------------------------------------------------
+
+    def _update(self):
+        n = 0
+        n += self._pull(self.inlet_eeg, self.buf_eeg)
+        n += self._pull(self.inlet_eeg, self.buf_eeg_fft)
+        n += self._pull(self.inlet_accel, self.buf_accel)
+        n += self._pull(self.inlet_gyro, self.buf_gyro)
+
+        self.samples += n
+
+        eeg = self.buf_eeg.get()
+        if len(eeg) > 1:
+            t = np.linspace(-len(eeg) / FS_EEG, 0, len(eeg))
+            for i, c in enumerate(self.eeg_curves):
+                c.setData(t, eeg[:, i])
+
+        self.band_bars.setOpts(height=self._band_powers())
+
+        acc = self.buf_accel.get()
+        if len(acc) > 1:
+            t = np.linspace(-len(acc) / FS_MOTION, 0, len(acc))
+            for i, c in enumerate(self.accel_curves):
+                c.setData(t, acc[:, i])
+
+        gyr = self.buf_gyro.get()
+        if len(gyr) > 1:
+            t = np.linspace(-len(gyr) / FS_MOTION, 0, len(gyr))
+            for i, c in enumerate(self.gyro_curves):
+                c.setData(t, gyr[:, i])
+
+        self.status.showMessage(f"Campioni ricevuti: {self.samples:,}")
+
+# ---------------------------------------------------------------------------
+# MAIN
+# ---------------------------------------------------------------------------
+
+def main():
+    app = QtWidgets.QApplication(sys.argv)
+    app.setStyle("Fusion")
+    win = MuseMonitor()
+    win.show()
+
+    try:
+        sys.exit(app.exec_())
+    except KeyboardInterrupt:
+        print("\n🛑 Interrotto con Ctrl+C")
+        sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()
