@@ -19,19 +19,11 @@ def main():
 
     # Legge i dati in tempo reale
     print("📊 Leggo dati dal giroscopio (CTRL+C per fermare):")
-    count = 0
     try:
         while True:
             sample, timestamp = inlet.pull_sample()
             print(f"{timestamp:.3f}: {sample}")
-            if (count == 0):
-                avanti = sample[0]
-                count = 1
             time.sleep(1)
-            if (sample[0] < avanti-1):
-                print("Avanti")
-            elif (sample[0] > avanti+1):
-                print("Indietro")
     except KeyboardInterrupt:
         print("\n🛑 Lettura interrotta dall'utente.")
 
