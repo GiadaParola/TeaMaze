@@ -7,4 +7,4 @@ Players can choose between two characters, a boy and a girl, to play with. They 
 <br>
 Along the way, they may encounter monsters that ask a question, which can be answered by choosing from four possible answers. If the answer is correct, a shortcut opens up.
 
-#ISTRUCTION FOR USE
+# ISTRUCTION FOR USE
