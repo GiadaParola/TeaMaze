@@ -1,5 +1,5 @@
 # PROJECT AND TEAM PRESENTATION
-With the project we have developed, we aim to facilitate the rehabilitation of multiple sclerosis patients through an exergame.
+With the project we have developed, we aim to facilitate the rehabilitation of multiple sclerosis patients through an exergame. This is because playing is fun, the fatigue of physical therapy exercises is less noticeable, and the burden of the disease is lightened.<br>
 <br>
 The video game consists of finding your way out of a maze. By answering questions, you can unlock shortcuts that help you reach the end more easily.
 <br>
