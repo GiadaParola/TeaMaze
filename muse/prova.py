@@ -1,4 +1,4 @@
-from djitellopy import Tello
+#from djitellopy import Tello
 import cv2
 import time
 import numpy as np 
@@ -23,14 +23,14 @@ OVERLAP_LENGTH = 0.8
 SHIFT_LENGTH = EPOCH_LENGTH - OVERLAP_LENGTH
 INDEX_CHANNEL = [0]
 
-tello = Tello()
+#tello = Tello()
 
 def museSettings():
     # Search and active LSL streams
     print('Looking for an EEG stream...')
     streams = resolve_byprop('type', 'EEG', timeout=2)
     if len(streams) == 0:
-        raise RuntimeError('Can\'t find EEG stream.')
+        raise RuntimeError('Can\'t find EEG stream.')#
     print("Start acquiring data")
     inlet = StreamInlet(streams[0], max_chunklen=12)
     eeg_time_correction = inlet.time_correction()
@@ -65,7 +65,7 @@ def acquireData(inlet, fs, eeg_buffer):
     band_alpha = utils.compute_alpha(data_epoch, fs)
     return band_beta
     
-
+#non serve
 def visual():
     # Avvia lo streaming video
     tello.streamon()
@@ -90,36 +90,38 @@ def visual():
 def main():
     print("entrato nel main")
     inlet,fs, eeg_buffer = museSettings()
-    tello.connect()
-    onFlight = False
+    #tello.connect()
+    #onFlight = False
     while True:
         print("in cycle")
         museOperation = np.mean(acquireData(inlet=inlet, fs=fs, eeg_buffer=eeg_buffer))
         print(museOperation)
         print("closed muse operation")
         if museOperation < 0.15: 
-            print("Altezza: "+str(tello.get_height()))
-            print("Batteria: " + str(tello.get_battery()))
-            height = tello.get_height()
-            if onFlight == False:
-                print("Takeoff")
-                tello.takeoff()
-                onFlight=True
-            if height < 200:
-                tello.move_up(20)
-            else:
-                tello.send_rc_control(0,0,0,0)# manda i comandi al drone per non farlo scendere
+            print("poco concentrato\n")
+            #print("Altezza: "+str(tello.get_height()))
+            #print("Batteria: " + str(tello.get_battery()))
+            #height = tello.get_height()
+            #if onFlight == False:
+            #    print("Takeoff")
+            #    tello.takeoff()
+            #    onFlight=True
+            #if height < 200:
+            #    tello.move_up(20)
+            #else:
+            #    tello.send_rc_control(0,0,0,0)# manda i comandi al drone per non farlo scendere
         else:
-            print("Altezza: "+str(tello.get_height()))
-            print("Batteria: " + str(tello.get_battery()))
-            height = tello.get_height()
-            if height>120:
-                tello.move_down(50)
-            elif onFlight==False:
-                print("In attesa di concentrazione...")
-            else:
-                print("Land")
-                break
+            print("Concentrato\n")
+            #print("Altezza: "+str(tello.get_height()))
+            #print("Batteria: " + str(tello.get_battery()))
+            #height = tello.get_height()
+            #if height>120:
+            #    tello.move_down(50)
+            #elif onFlight==False:
+            #    print("In attesa di concentrazione...")
+            #else:
+            #    print("Land")
+            #    break
 
     time.sleep(1)
     tello.land()
