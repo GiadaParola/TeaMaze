@@ -1,9 +1,11 @@
 from pylsl import StreamInlet, resolve_byprop, resolve_streams
+import time
 
 def main():
-    print("🔍 Cerco lo stream GYRO del Muse 2...")
+    print("🔍 Cerco lo stream Gyroscope del Muse 2...")
 
-    streams = resolve_byprop('type', 'GYRO', timeout=5)
+    # Attenzione alla case: "Gyroscope" non "GYRO"
+    streams = resolve_byprop('type', 'Gyroscope', timeout=5)
 
     if not streams:
         print("⚠️ Giroscopio non trovato. Ecco tutti gli stream disponibili:")
@@ -14,6 +16,24 @@ def main():
 
     inlet = StreamInlet(streams[0])
     print("✅ Giroscopio connesso!")
+
+    # Legge i dati in tempo reale
+    print("📊 Leggo dati dal giroscopio (CTRL+C per fermare):")
+    count = 0
+    try:
+        while True:
+            sample, timestamp = inlet.pull_sample()
+            print(f"{timestamp:.3f}: {sample}")
+            if (count == 0):
+                avanti = sample[0]
+                count = 1
+            time.sleep(1)
+            if (sample[0] < avanti-1):
+                print("Avanti")
+            elif (sample[0] > avanti+1):
+                print("Indietro")
+    except KeyboardInterrupt:
+        print("\n🛑 Lettura interrotta dall'utente.")
 
 if __name__ == "__main__":
     main()
