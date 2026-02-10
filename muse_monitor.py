@@ -13,7 +13,7 @@ from pylsl import StreamInlet, resolve_byprop, resolve_streams
 EEG_WINDOW_S = 5
 MOTION_WINDOW_S = 5
 
-FS_EEG = 256
+FS_EEG = 128
 FS_MOTION = 52
 
 REFRESH_MS = 40
@@ -110,7 +110,7 @@ class MuseMonitor(QtWidgets.QMainWindow):
             sys.exit(1)
 
         self.buf_eeg = RingBuffer(FS_EEG * EEG_WINDOW_S, 4)
-        self.buf_eeg_fft = RingBuffer(FS_EEG * 2, 4)
+        self.buf_eeg_fft = RingBuffer(256, 4)  # Coerente con nperseg=256 di Welch
 
         self.buf_accel = RingBuffer(FS_MOTION * MOTION_WINDOW_S, 3)
         self.buf_gyro = RingBuffer(FS_MOTION * MOTION_WINDOW_S, 3)
@@ -134,6 +134,7 @@ class MuseMonitor(QtWidgets.QMainWindow):
 
         # EEG
         self.pw_eeg = pg.PlotWidget(title="EEG (µV)")
+        self.pw_eeg.setYRange(-1000, 1000)
         self.pw_eeg.addLegend()
         self.pw_eeg.showGrid(x=True, y=True)
         self.eeg_curves = [
@@ -142,7 +143,7 @@ class MuseMonitor(QtWidgets.QMainWindow):
         ]
         layout.addWidget(self.pw_eeg)
 
-        # Bande
+        # Bande EEG
         self.pw_bands = pg.PlotWidget(title="Potenza bande EEG")
         self.band_bars = pg.BarGraphItem(
             x=np.arange(len(BANDS)),
@@ -183,23 +184,19 @@ class MuseMonitor(QtWidgets.QMainWindow):
         if inlet is None:
             return 0
 
-        samples = []
-        while True:
-            sample, _ = inlet.pull_sample(timeout=0.0)
-            if sample is None:
-                break
-            sample = sample[:buf.n_channels]  # FIX Muse 2
-            samples.append(sample)
-
+        # Uso pull_chunk per efficienza
+        samples, _ = inlet.pull_chunk(timeout=0.0, max_samples=1024)
         if samples:
-            buf.append(np.array(samples))
-        return len(samples)
+            samples = np.array(samples)[:, :buf.n_channels]
+            buf.append(samples)
+            return len(samples)
+        return 0
 
     # ---------------------------------------------------------------------
 
     def _band_powers(self):
         data = self.buf_eeg_fft.get()
-        if len(data) < FS_EEG:
+        if len(data) < 128:  # almeno 1 secondo di dati
             return np.zeros(len(BANDS))
 
         powers = np.zeros(len(BANDS))
@@ -224,27 +221,36 @@ class MuseMonitor(QtWidgets.QMainWindow):
 
         self.samples += n
 
+        # --- EEG ---
         eeg = self.buf_eeg.get()
         if len(eeg) > 1:
             t = np.linspace(-len(eeg) / FS_EEG, 0, len(eeg))
             for i, c in enumerate(self.eeg_curves):
                 c.setData(t, eeg[:, i])
 
-        self.band_bars.setOpts(height=self._band_powers())
+        # --- Bande ---
+        band_values = self._band_powers()
+        self.band_bars.setOpts(height=band_values)
 
+        # Esempio: rilevazione concentrazione (Alpha alta)
+        if band_values[2] > 0.4:  # Alpha > 40%
+            self.status.showMessage(f"Campioni: {self.samples:,} — 🧠 Focus rilevato!")
+        else:
+            self.status.showMessage(f"Campioni: {self.samples:,}")
+
+        # --- Accelerometro ---
         acc = self.buf_accel.get()
         if len(acc) > 1:
             t = np.linspace(-len(acc) / FS_MOTION, 0, len(acc))
             for i, c in enumerate(self.accel_curves):
                 c.setData(t, acc[:, i])
 
+        # --- Giroscopio ---
         gyr = self.buf_gyro.get()
         if len(gyr) > 1:
             t = np.linspace(-len(gyr) / FS_MOTION, 0, len(gyr))
             for i, c in enumerate(self.gyro_curves):
                 c.setData(t, gyr[:, i])
-
-        self.status.showMessage(f"Campioni ricevuti: {self.samples:,}")
 
 # ---------------------------------------------------------------------------
 # MAIN
@@ -255,13 +261,9 @@ def main():
     app.setStyle("Fusion")
     win = MuseMonitor()
     win.show()
-
-    try:
-        sys.exit(app.exec_())
-    except KeyboardInterrupt:
-        print("\n🛑 Interrotto con Ctrl+C")
-        sys.exit(0)
-
+    sys.exit(app.exec())
 
 if __name__ == "__main__":
     main()
+
+    
