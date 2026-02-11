@@ -25,4 +25,4 @@ The video game consists of finding your way out of a maze. By answering question
 # EXECUTION
 You must connect the Muse2 via Bluetooth using his own program.<br>
 <br>
-After you have to run `TEST/main.py`
+After you have to run `TEST/main.py` in the terminal, and wait that the process starts.
