@@ -1,6 +1,8 @@
 import sys
 import numpy as np
 from scipy.signal import welch
+import csv
+from datetime import datetime
 
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtWidgets
@@ -26,10 +28,10 @@ GYRO_LABELS = ["X", "Y", "Z"]
 MOTION_COLORS = ["#EF553B", "#00CC96", "#636EFA"]
 
 BANDS = {
-    "Delta": (1, 4),  #Movement
-    "Theta": (4, 8),  #Immagination
-    "Alpha": (8, 13), #Chilling
-    "Beta":  (13, 30),#Concentration
+    "Delta": (1, 4),   # Movimento
+    "Theta": (4, 8),   # Immaginazione
+    "Alpha": (8, 13),  # Riposo
+    "Beta":  (13, 30), # Concentrazione
 }
 BAND_COLORS = ["#636EFA", "#EF553B", "#00CC96", "#AB63FA"]
 
@@ -110,10 +112,15 @@ class MuseMonitor(QtWidgets.QMainWindow):
             sys.exit(1)
 
         self.buf_eeg = RingBuffer(FS_EEG * EEG_WINDOW_S, 4)
-        self.buf_eeg_fft = RingBuffer(256, 4)  # Coerente con nperseg=256 di Welch
+        self.buf_eeg_fft = RingBuffer(256, 4)  # Per Welch
 
         self.buf_accel = RingBuffer(FS_MOTION * MOTION_WINDOW_S, 3)
         self.buf_gyro = RingBuffer(FS_MOTION * MOTION_WINDOW_S, 3)
+
+        # CSV per bande EEG
+        self.csv_file = open("band_powers.csv", "w", newline="")
+        self.csv_writer = csv.writer(self.csv_file)
+        self.csv_writer.writerow(["Timestamp"] + list(BANDS.keys()))
 
         self._build_ui()
 
@@ -184,7 +191,6 @@ class MuseMonitor(QtWidgets.QMainWindow):
         if inlet is None:
             return 0
 
-        # Uso pull_chunk per efficienza
         samples, _ = inlet.pull_chunk(timeout=0.0, max_samples=1024)
         if samples:
             samples = np.array(samples)[:, :buf.n_channels]
@@ -213,9 +219,15 @@ class MuseMonitor(QtWidgets.QMainWindow):
     # ---------------------------------------------------------------------
 
     def _update(self):
+        # --- Pull dati ---
         n = 0
-        n += self._pull(self.inlet_eeg, self.buf_eeg)
-        n += self._pull(self.inlet_eeg, self.buf_eeg_fft)
+        if self.inlet_eeg:
+            samples, _ = self.inlet_eeg.pull_chunk(timeout=0.0, max_samples=1024)
+            if samples:
+                samples = np.array(samples)[:, :4]
+                self.buf_eeg.append(samples)
+                self.buf_eeg_fft.append(samples)
+                n += len(samples)
         n += self._pull(self.inlet_accel, self.buf_accel)
         n += self._pull(self.inlet_gyro, self.buf_gyro)
 
@@ -230,18 +242,14 @@ class MuseMonitor(QtWidgets.QMainWindow):
 
         # --- Bande ---
         band_values = self._band_powers()
-        if band_values[0] > 0.5:
-            print(f"Delta: {band_values[0]} | In movimento")
-        if band_values[1] > 0.2:
-            print(f"Theta: {band_values[1]} | Immaginazione")
-        if band_values[2] > 0.2:
-            print(f"Alpha: {band_values[2]} | Riposo")
-        if band_values[3] > 0.5:
-            print(f"Beta: {band_values[3]} | Concentrato")
         self.band_bars.setOpts(height=band_values)
 
-        # Esempio: rilevazione concentrazione (Alpha alta)
-        if band_values[2] > 0.4:  # Alpha > 40%
+        # Salvataggio CSV
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+        self.csv_writer.writerow([timestamp] + band_values.tolist())
+
+        # --- Stato ---
+        if band_values[2] > 0.4:  # Alpha alta
             self.status.showMessage(f"Campioni: {self.samples:,} — 🧠 Focus rilevato!")
         else:
             self.status.showMessage(f"Campioni: {self.samples:,}")
@@ -260,6 +268,19 @@ class MuseMonitor(QtWidgets.QMainWindow):
             for i, c in enumerate(self.gyro_curves):
                 c.setData(t, gyr[:, i])
 
+    # ---------------------------------------------------------------------
+
+    def closeEvent(self, event):
+        # Ferma il timer per evitare che _update venga chiamato dopo la chiusura
+        self.timer.stop()
+
+        # Chiudi il file CSV
+        if hasattr(self, "csv_file") and not self.csv_file.closed:
+            self.csv_file.close()
+
+        event.accept()
+
+
 # ---------------------------------------------------------------------------
 # MAIN
 # ---------------------------------------------------------------------------
@@ -273,5 +294,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-    
