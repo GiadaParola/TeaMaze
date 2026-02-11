@@ -182,7 +182,7 @@ def main():
                         stato_gioco = "INIZIALIZZA"
 
         elif stato_gioco == "INIZIALIZZA":
-            tmx_data = pytmx.util_pygame.load_pygame("mappa1.tmx")
+            tmx_data = pytmx.util_pygame.load_pygame("./img/mappa1.tmx")
             muri_solidi = []
             for layer in tmx_data.visible_layers:
                 if isinstance(layer, pytmx.TiledTileLayer) and layer.name == "sfondo":
