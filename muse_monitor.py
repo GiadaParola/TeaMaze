@@ -26,10 +26,10 @@ GYRO_LABELS = ["X", "Y", "Z"]
 MOTION_COLORS = ["#EF553B", "#00CC96", "#636EFA"]
 
 BANDS = {
-    "Delta": (1, 4),
-    "Theta": (4, 8),
-    "Alpha": (8, 13),
-    "Beta":  (13, 30),
+    "Delta": (1, 4),  #Movement
+    "Theta": (4, 8),  #Immagination
+    "Alpha": (8, 13), #Chilling
+    "Beta":  (13, 30),#Concentration
 }
 BAND_COLORS = ["#636EFA", "#EF553B", "#00CC96", "#AB63FA"]
 
@@ -196,7 +196,7 @@ class MuseMonitor(QtWidgets.QMainWindow):
 
     def _band_powers(self):
         data = self.buf_eeg_fft.get()
-        if len(data) < 128:  # almeno 1 secondo di dati
+        if len(data) < 64:  # almeno mezzo secondo di dati
             return np.zeros(len(BANDS))
 
         powers = np.zeros(len(BANDS))
@@ -230,6 +230,14 @@ class MuseMonitor(QtWidgets.QMainWindow):
 
         # --- Bande ---
         band_values = self._band_powers()
+        if band_values[0] > 0.5:
+            print(f"Delta: {band_values[0]} | In movimento")
+        if band_values[1] > 0.2:
+            print(f"Theta: {band_values[1]} | Immaginazione")
+        if band_values[2] > 0.2:
+            print(f"Alpha: {band_values[2]} | Riposo")
+        if band_values[3] > 0.5:
+            print(f"Beta: {band_values[3]} | Concentrato")
         self.band_bars.setOpts(height=band_values)
 
         # Esempio: rilevazione concentrazione (Alpha alta)
