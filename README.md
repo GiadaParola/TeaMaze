@@ -18,6 +18,6 @@ The video game consists of finding your way out of a maze. By answering question
 * `pip install pylsl`, in order to install pylsl a library for transmitting and receiving data in real time using the Lab Streaming Layer protocol, mainly used to acquire biological signals such as EEG.
 
 # EXECUTION
-You must connect the Muse2 via Bluetooth using his own program.
+You must connect the Muse2 via Bluetooth using his own program.<br>
 <br>
 After you have to run ...
