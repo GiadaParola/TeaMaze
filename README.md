@@ -14,5 +14,5 @@ The video game consists of finding your way out of a maze. By answering question
 * `pip install pysls`, in order to install pysls, a library for DJI drone control.
 * `pip install numpy`, in order to install numpy a fundamental library for array manipulation and scientific computing in Python.
 * `pip install scipy`, in order to install scipy a library for data processing and analysis in scientific computing.
-* `pip install pyqtgraph`, in order to install pyqtgraph a
-* `pip install pylsl`, in order to install pylsl a 
+* `pip install pyqtgraph`, in order to install pyqtgraph a library that allows you to create interactive, high-performance graphs, ideal for displaying scientific or sensory data in real time within applications with Qt interfaces.
+* `pip install pylsl`, in order to install pylsl a library for transmitting and receiving data in real time using the Lab Streaming Layer protocol, mainly used to acquire biological signals such as EEG.
