@@ -125,10 +125,10 @@ def main():
     font_testo = pygame.font.SysFont("Arial", 35)
 
     # Asset
-    img_Minotauro = carica_immagine("minotauro.png", (255, 0, 0))
-    img_m = carica_immagine("personaggioM.png", (0, 0, 255))
-    img_f = carica_immagine("personaggioF.png", (255, 105, 180))
-    img_bosco_base = carica_immagine("bosco.png", COL_ESTERNO)
+    img_Minotauro = carica_immagine("./img/minotauro.png", (255, 0, 0))
+    img_m = carica_immagine("./img/personaggioM.png", (0, 0, 255))
+    img_f = carica_immagine("./img/personaggioF.png", (255, 105, 180))
+    img_bosco_base = carica_immagine("./img/bosco.png", COL_ESTERNO)
     
     # Sfondo bosco zoomato
     ZOOM_SFONDO = 1.8
