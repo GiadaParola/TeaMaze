@@ -11,8 +11,8 @@ The video game consists of finding your way out of a maze. By answering question
 
  # LIBRARIES TO DOWNLOAD
  Not all the libraries used from our project are directly involved in python, these are: pysls, numpy, tkinter, random, scipy, djitellopy, opencv-python, matplotlib and sklearn. So you have to download them writing in the terminal:
-* pip install pysls, in order to install pysls a library for DJI drone control.
-* pip install numpy, in order to install numpy a fundamental library for array manipulation and scientific computing in Python.
-* pip install scipy, in order to install scipy a library for data processing and analysis in scientific computing.
-* pip install pyqtgraph, in order to install pyqtgraph a
-* pip install pylsl, in order to install pylsl a 
+* 'pip install pysls', in order to install pysls a library for DJI drone control.
+* 'pip install numpy', in order to install numpy a fundamental library for array manipulation and scientific computing in Python.
+* 'pip install scipy', in order to install scipy a library for data processing and analysis in scientific computing.
+* 'pip install pyqtgraph', in order to install pyqtgraph a
+* 'pip install pylsl', in order to install pylsl a 
