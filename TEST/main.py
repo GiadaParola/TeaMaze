@@ -7,6 +7,7 @@ from PIL import Image  # Per elaborare immagini e GIF
 import os  # Per gestire i percorsi dei file
 import giocatore    
 import nemico
+from museEEG import MuseEEG
 # Base directory per asset (cartella img collocata accanto a questo file)
 BASE_DIR = os.path.dirname(__file__)
 IMG_DIR = os.path.join(BASE_DIR, "img")
@@ -327,7 +328,7 @@ def main():
         elif stato_gioco == "IN_GIOCO":
             keys = pygame.key.get_pressed()  # Prendi lo stato di tutte le tastiere
             # Calcola movimento in base ai tasti: RIGHT-LEFT per X, DOWN-UP per Y, moltiplicato per 2
-            player.muovi((keys[pygame.K_RIGHT]-keys[pygame.K_LEFT])*2, (keys[pygame.K_DOWN]-keys[pygame.K_UP])*2, muri)
+            player.muovi(keys, muri)
             nemico1.muovi_auto(muri)  # Muove il nemico in modo autonomo
             nemico2.muovi_auto(muri)  # Muove il nemico in modo autonomo
 
@@ -407,7 +408,7 @@ def main():
         # STATO: Vittoria
         elif stato_gioco == "VITTORIA":
             screen.fill((0, 80, 0))  # Sfondo verde scuro
-            txt = font.render("SEI FUGGITO!", True, (255, 255, 255))  # Testo vittoria bianco
+            txt = font.render("SEI FUGGITO!!!!!!!!!!!", True, (255, 255, 255))  # Testo vittoria bianco
             screen.blit(txt, (LARGHEZZA//2 - txt.get_width()//2, ALTEZZA//2 - 50))  # Disegna testo centrato
             for e in event:  # Controlla input
                 if e.type == pygame.KEYDOWN and e.key == pygame.K_SPACE: stato_gioco = "MENU_PRINCIPALE"  # SPAZIO = ritorna al menu
