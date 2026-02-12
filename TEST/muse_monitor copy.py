@@ -1,6 +1,8 @@
 import sys
 import numpy as np
 from scipy.signal import welch
+import csv
+from datetime import datetime
 
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtWidgets
@@ -12,9 +14,11 @@ from pylsl import StreamInlet, resolve_byprop, resolve_streams
 
 EEG_WINDOW_S = 5
 MOTION_WINDOW_S = 5
+PPG_WINDOW_S = 5
 
 FS_EEG = 128
 FS_MOTION = 52
+FS_PPG = 64  # tipico per Muse PPG
 
 REFRESH_MS = 40
 
@@ -95,25 +99,32 @@ class MuseMonitor(QtWidgets.QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Muse 2 — EEG + Movimento")
-        self.resize(1400, 900)
+        self.setWindowTitle("Muse 2 — EEG + Movimento + PPG")
+        self.resize(1400, 1000)
 
         print("\n🔍 Ricerca stream LSL...\n")
         self.inlet_eeg = resolve_muse_stream("EEG")
         self.inlet_accel = resolve_muse_stream("Accelerometer")
         self.inlet_gyro = resolve_muse_stream("Gyroscope")
+        self.inlet_ppg = resolve_muse_stream("PPG")
 
-        if not any([self.inlet_eeg, self.inlet_accel, self.inlet_gyro]):
+        if not any([self.inlet_eeg, self.inlet_accel, self.inlet_gyro, self.inlet_ppg]):
             print("\n❌ Nessuno stream trovato")
             for s in resolve_streams():
                 print(f"- {s.name()} ({s.type()})")
             sys.exit(1)
 
         self.buf_eeg = RingBuffer(FS_EEG * EEG_WINDOW_S, 4)
-        self.buf_eeg_fft = RingBuffer(256, 4)  # Coerente con nperseg=256 di Welch
+        self.buf_eeg_fft = RingBuffer(256, 4)  # per Welch
 
         self.buf_accel = RingBuffer(FS_MOTION * MOTION_WINDOW_S, 3)
         self.buf_gyro = RingBuffer(FS_MOTION * MOTION_WINDOW_S, 3)
+        self.buf_ppg = RingBuffer(FS_PPG * PPG_WINDOW_S, 1)
+
+        # CSV per bande EEG + PPG
+        self.csv_file = open("band_powers_ppg.csv", "w", newline="")
+        self.csv_writer = csv.writer(self.csv_file)
+        self.csv_writer.writerow(["Timestamp"] + list(BANDS.keys()) + ["PPG"])
 
         self._build_ui()
 
@@ -176,6 +187,12 @@ class MuseMonitor(QtWidgets.QMainWindow):
         ]
         layout.addWidget(self.pw_gyro)
 
+        # PPG
+        self.pw_ppg = pg.PlotWidget(title="PPG")
+        self.pw_ppg.showGrid(x=True, y=True)
+        self.ppg_curve = self.pw_ppg.plot(pen=pg.mkPen("#FF00FF", width=1.5))
+        layout.addWidget(self.pw_ppg)
+
         self.status = self.statusBar()
 
     # ---------------------------------------------------------------------
@@ -184,7 +201,6 @@ class MuseMonitor(QtWidgets.QMainWindow):
         if inlet is None:
             return 0
 
-        # Uso pull_chunk per efficienza
         samples, _ = inlet.pull_chunk(timeout=0.0, max_samples=1024)
         if samples:
             samples = np.array(samples)[:, :buf.n_channels]
@@ -196,7 +212,7 @@ class MuseMonitor(QtWidgets.QMainWindow):
 
     def _band_powers(self):
         data = self.buf_eeg_fft.get()
-        if len(data) < 128:  # almeno 1 secondo di dati
+        if len(data) < 64:
             return np.zeros(len(BANDS))
 
         powers = np.zeros(len(BANDS))
@@ -213,11 +229,19 @@ class MuseMonitor(QtWidgets.QMainWindow):
     # ---------------------------------------------------------------------
 
     def _update(self):
+        # --- Pull dati ---
         n = 0
-        n += self._pull(self.inlet_eeg, self.buf_eeg)
-        n += self._pull(self.inlet_eeg, self.buf_eeg_fft)
+        if self.inlet_eeg:
+            samples, _ = self.inlet_eeg.pull_chunk(timeout=0.0, max_samples=1024)
+            if samples:
+                samples = np.array(samples)[:, :4]
+                self.buf_eeg.append(samples)
+                self.buf_eeg_fft.append(samples)
+                n += len(samples)
+
         n += self._pull(self.inlet_accel, self.buf_accel)
         n += self._pull(self.inlet_gyro, self.buf_gyro)
+        n += self._pull(self.inlet_ppg, self.buf_ppg)
 
         self.samples += n
 
@@ -232,11 +256,22 @@ class MuseMonitor(QtWidgets.QMainWindow):
         band_values = self._band_powers()
         self.band_bars.setOpts(height=band_values)
 
-        # Esempio: rilevazione concentrazione (Alpha alta)
-        if band_values[2] > 0.4:  # Alpha > 40%
-            self.status.showMessage(f"Campioni: {self.samples:,} — 🧠 Focus rilevato!")
+        # --- PPG ---
+        ppg = self.buf_ppg.get()
+        ppg_value = ppg[-1, 0] if len(ppg) > 0 else 0
+        if len(ppg) > 1:
+            t = np.linspace(-len(ppg) / FS_PPG, 0, len(ppg))
+            self.ppg_curve.setData(t, ppg[:, 0])
+
+        # --- Salvataggio CSV ---
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+        self.csv_writer.writerow([timestamp] + band_values.tolist() + [ppg_value])
+
+        # --- Stato ---
+        if band_values[2] > 0.4:  # Alpha alta
+            self.status.showMessage(f"Campioni: {self.samples:,} — 🧠 Focus rilevato! PPG: {ppg_value:.3f}")
         else:
-            self.status.showMessage(f"Campioni: {self.samples:,}")
+            self.status.showMessage(f"Campioni: {self.samples:,} — PPG: {ppg_value:.3f}")
 
         # --- Accelerometro ---
         acc = self.buf_accel.get()
@@ -252,6 +287,14 @@ class MuseMonitor(QtWidgets.QMainWindow):
             for i, c in enumerate(self.gyro_curves):
                 c.setData(t, gyr[:, i])
 
+    # ---------------------------------------------------------------------
+
+    def closeEvent(self, event):
+        self.timer.stop()
+        if hasattr(self, "csv_file") and not self.csv_file.closed:
+            self.csv_file.close()
+        event.accept()
+
 # ---------------------------------------------------------------------------
 # MAIN
 # ---------------------------------------------------------------------------
@@ -265,5 +308,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-    
