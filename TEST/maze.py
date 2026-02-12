@@ -3,6 +3,7 @@ import sys
 import pytmx
 import random
 from PIL import Image
+import os
 
 # --- CONFIGURAZIONE ---
 FPS = 60
@@ -124,11 +125,15 @@ def main():
     font_titolo = pygame.font.SysFont("Arial", 80, bold=True)
     font_testo = pygame.font.SysFont("Arial", 35)
 
+    # Base path per asset
+    BASE_DIR = os.path.dirname(__file__)
+    IMG_DIR = os.path.join(BASE_DIR, "img")
+
     # Asset
-    img_Minotauro = carica_immagine("./img/minotauro.png", (255, 0, 0))
-    img_m = carica_immagine("./img/personaggioM.png", (0, 0, 255))
-    img_f = carica_immagine("./img/personaggioF.png", (255, 105, 180))
-    img_bosco_base = carica_immagine("./img/bosco.png", COL_ESTERNO)
+    img_Minotauro = carica_immagine(os.path.join(IMG_DIR, "minotauro.png"), (255, 0, 0))
+    img_m = carica_immagine(os.path.join(IMG_DIR, "personaggioM.png"), (0, 0, 255))
+    img_f = carica_immagine(os.path.join(IMG_DIR, "personaggioF.png"), (255, 105, 180))
+    img_bosco_base = carica_immagine(os.path.join(IMG_DIR, "bosco.png"), COL_ESTERNO)
     
     # Sfondo bosco zoomato
     ZOOM_SFONDO = 1.8
@@ -175,14 +180,14 @@ def main():
                     if rect_m.collidepoint(event.pos):
                         personaggio_scelto = "M"
                         # Larghezza 28, l'altezza si adatta automaticamente
-                        frames_m_animato = estrai_frames_gif("./img/personaggioManimato.gif", 28)
+                        frames_m_animato = estrai_frames_gif(os.path.join(IMG_DIR, "personaggioManimato.gif"), 28)
                         stato_gioco = "INIZIALIZZA"
                     if rect_f.collidepoint(event.pos):
                         personaggio_scelto = "F"
                         stato_gioco = "INIZIALIZZA"
 
         elif stato_gioco == "INIZIALIZZA":
-            tmx_data = pytmx.util_pygame.load_pygame("./img/mappa1.tmx")
+            tmx_data = pytmx.util_pygame.load_pygame(os.path.join(IMG_DIR, "mappa1.tmx"))
             muri_solidi = []
             for layer in tmx_data.visible_layers:
                 if isinstance(layer, pytmx.TiledTileLayer) and layer.name == "sfondo":
