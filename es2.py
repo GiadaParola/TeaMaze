@@ -175,7 +175,7 @@ def main():
                     if rect_m.collidepoint(event.pos):
                         personaggio_scelto = "M"
                         # Larghezza 28, l'altezza si adatta automaticamente
-                        frames_m_animato = estrai_frames_gif("personaggioManimato.gif", 28)
+                        frames_m_animato = estrai_frames_gif("./img/personaggioManimato.gif", 28)
                         stato_gioco = "INIZIALIZZA"
                     if rect_f.collidepoint(event.pos):
                         personaggio_scelto = "F"
