@@ -1,5 +1,6 @@
 import pygame
 from museEEG import MuseEEG
+from museGYRO import MuseGYRO
 
 class Giocatore:
     """Classe che rappresenta il giocatore controllabile"""
@@ -23,7 +24,15 @@ class Giocatore:
         else:
             print("Muse EEG non trovato, useremo valori simulati")
 
-    def muovi(self, tasti_premuti, muri):
+        # --- Gryo ---
+        self.gyro = MuseGYRO()
+        if self.gyro.connect():
+            print("Muse GYRO pronto")
+        else:
+            print("Muse GYRO non trovato, useremo valori simulati")
+
+
+    def muovi(self, muri):
         """Muove il giocatore controllato da EEG Beta e tastiera"""
 
         # --- Aggiorna buffer EEG ---
@@ -37,25 +46,26 @@ class Giocatore:
         vel = 2 if beta > soglia_beta else 0
 
         # --- Cambia direzione con i tasti ---
-        if tasti_premuti[pygame.K_RIGHT]:
+        if self.gyro.picco_positivo("y"):  # dx
             self.direzione = 3
-        elif tasti_premuti[pygame.K_UP]:
+        elif self.gyro.picco_negativo("y"):  # su
             self.direzione = 2
-        elif tasti_premuti[pygame.K_LEFT]:
+        elif self.gyro.picco_positivo("z"):  # sx
             self.direzione = 1
-        elif tasti_premuti[pygame.K_DOWN]:
+        elif self.gyro.picco_negativo("z"):  # giù
             self.direzione = 0
+
 
 
         # --- Calcola dx, dy ---
         dx = dy = 0
         if self.direzione == 0:  # giù
             dy = vel
-        elif self.direzione == 1:  # sinistra
+        elif self.direzione == 1:  # sx
             dx = -vel
         elif self.direzione == 2:  # su
             dy = -vel
-        elif self.direzione == 3:  # destra
+        elif self.direzione == 3:  # dx
             dx = vel
 
         # Aggiorna stato movimento

@@ -457,9 +457,8 @@ def main():
                 # Rigenera la maschera di luce quando il raggio cambia
                 luce_mask = crea_superficie_luce(raggio_luce)
             
-            keys = pygame.key.get_pressed()  # Prendi lo stato di tutte le tastiere
-            # Calcola movimento in base ai tasti: RIGHT-LEFT per X, DOWN-UP per Y, moltiplicato per 2
-            player.muovi(keys, muri)
+            # Calcola movimento in base a come muovi la testa
+            player.muovi(muri)
             if nemico1:
                 nemico1.muovi_auto(muri)
             if nemico2:
