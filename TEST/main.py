@@ -16,6 +16,35 @@ from domande import DOMANDE
 def main():
     """Funzione principale del gioco"""
     pygame.init()  # Inizializza la libreria pygame
+    # Inizializza il mixer audio (se possibile)
+    try:
+        pygame.mixer.init()
+    except Exception:
+        pass
+
+    # Mappa delle musica: assegna i file presenti in TEST/sounds
+    SOUNDS_DIR = os.path.join(BASE_DIR, "sounds")
+    MUSIC_FILES = {
+        "MENU": os.path.join(SOUNDS_DIR, "awesomeness.wav"),
+        "LIVELLO1": os.path.join(SOUNDS_DIR, "01 First Light.mp3"),
+        "LIVELLO2": os.path.join(SOUNDS_DIR, "05 Sanctuary.mp3"),
+        "LIVELLO3": os.path.join(SOUNDS_DIR, "11 Chronicles of the Archive.mp3"),
+    }
+
+    current_music = None
+
+    def play_music(path, volume=0.6):
+        nonlocal current_music
+        try:
+            if not path or current_music == path:
+                return
+            pygame.mixer.music.load(path)
+            pygame.mixer.music.set_volume(volume)
+            pygame.mixer.music.play(-1)  # loop infinito
+            current_music = path
+        except Exception:
+            # Se il file non esiste o mixer non inizializzato, ignoriamo
+            current_music = None
     
     screen = pygame.display.set_mode((LARGHEZZA, ALTEZZA))  # Crea finestra principale 1920x1080
     v_screen = pygame.Surface((V_LARGHEZZA, V_ALTEZZA))  # Superficie virtuale per il rendering (960x540)
@@ -69,8 +98,9 @@ def main():
 
     # Inizializza variabili di stato
     stato_gioco = "MENU_PRINCIPALE"  # Stato iniziale del gioco
+    prev_state = None
     personaggio_scelto = None  # Personaggio non ancora scelto
-    livelli_possibili = [os.path.join(IMG_DIR, 'mappa1.tmx'), os.path.join(IMG_DIR, 'mappa2.tmx'), os.path.join(IMG_DIR, 'mappa3.tmx')]  # Livello non ancora scelto]
+    livelli_possibili = [os.path.join(IMG_DIR, 'mappa1.tmx'), os.path.join(IMG_DIR, 'mappa3.tmx'), os.path.join(IMG_DIR, 'mappa2.tmx')]  # Livello non ancora scelto]
     frames_animati = []  # Lista frames animazione giocatore
     raggio_luce = 200
     raggio_luce_min = 100  # Raggio minimo del campo visivo
@@ -116,6 +146,23 @@ def main():
     while True:
         event = pygame.event.get()
         mouse_pos = pygame.mouse.get_pos()
+        # Cambia la traccia se lo stato è cambiato
+        if stato_gioco != prev_state:
+            if stato_gioco == "MENU_PRINCIPALE":
+                play_music(MUSIC_FILES.get("MENU"))
+            elif stato_gioco == "IN_GIOCO":
+                # Scegli la musica in base al livello selezionato
+                try:
+                    if livello_scelto == livelli_possibili[0]:
+                        play_music(MUSIC_FILES.get("LIVELLO1"))
+                    elif livello_scelto == livelli_possibili[1]:
+                        play_music(MUSIC_FILES.get("LIVELLO2"))
+                    else:
+                        play_music(MUSIC_FILES.get("LIVELLO3"))
+                except Exception:
+                    pass
+            # aggiorna lo stato precedente
+            prev_state = stato_gioco
         
         for e in event:
             if e.type == pygame.QUIT: 
@@ -350,17 +397,16 @@ def main():
                 nemico2 = None
             elif(livello_scelto==livelli_possibili[1]):
                 # Livello 2: solo Drago
-                pos_iniziale_giocatore = (60, 390)
-                player = giocatore.Giocatore(60, 390, img_m_statica, frames_animati)
-                nemico1 = nemico.Nemico(500, 300, img_drago, grid_info)
-                nemico2 = None
-            else:
-                # Livello 3: solo Scheletro
                 pos_iniziale_giocatore = (440, 580)
                 player = giocatore.Giocatore(440, 580, img_m_statica, frames_animati)
                 nemico1 = nemico.Nemico(600, 400, img_scheletro, grid_info)
                 nemico2 = None
-            
+            else:
+                # Livello 3: solo Scheletro
+                pos_iniziale_giocatore = (60, 390)
+                player = giocatore.Giocatore(60, 390, img_m_statica, frames_animati)
+                nemico1 = nemico.Nemico(500, 300, img_drago, grid_info)
+                nemico2 = None
             stato_gioco = "IN_GIOCO"  # Inizia il gioco
 
         # STATO: Gioco in corso
