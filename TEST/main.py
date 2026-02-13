@@ -85,6 +85,9 @@ def main():
     anims_M = {"forward": anim_M_forward, "up": anim_M_up, "down": anim_M_down, "left": anim_M_left, "right": anim_M_forward}
     anims_F = {"forward": anim_F_forward, "up": anim_F_up, "down": anim_F_down, "left": anim_F_left, "right": anim_F_forward}
     anims_corrente = None
+    # Animazioni nemici (attacchi/pose da fermo)
+    anim_drago_fuoco = estrai_frames_gif(os.path.join(IMG_DIR, "dragoFuoco.gif"), 120)
+    anim_minotauro_sbuffa = estrai_frames_gif(os.path.join(IMG_DIR, "sbuffoGif.gif"), 100)
     larghezza_btn = 300
     altezza_btn = 70
     centro_x = LARGHEZZA // 2 - larghezza_btn // 2
@@ -126,6 +129,15 @@ def main():
     fine_tiles = []
     pos_iniziale_giocatore = (0, 0)
     livello_scelto = None
+    # Posizioni iniziali dei nemici (per reset dopo animazione)
+    nemico1_start = None
+    nemico2_start = None
+    # Stato animazione nemico dopo risposta sbagliata
+    enemy_anim_timer = 0
+    enemy_anim_frames = []
+    enemy_anim_owner = None
+    enemy_anim_index = 0
+    enemy_anim_frame_hold = 5
     
     # Personaggi disponibili per il menu di selezione
     personaggi = [
@@ -394,18 +406,24 @@ def main():
                 pos_iniziale_giocatore = (90, 70)
                 player = giocatore.Giocatore(90, 70, img_m_statica, frames_animati)
                 nemico1 = nemico.Nemico(400, 400, img_minotauro, grid_info)
+                nemico1.start_pos = (400, 400)
+                nemico1.tipo = "MINOTAURO"
                 nemico2 = None
             elif(livello_scelto==livelli_possibili[1]):
                 # Livello 2: solo Drago
                 pos_iniziale_giocatore = (440, 580)
                 player = giocatore.Giocatore(440, 580, img_m_statica, frames_animati)
-                nemico1 = nemico.Nemico(600, 400, img_scheletro, grid_info)
+                nemico1 = nemico.Nemico(600, 400, img_drago, grid_info)
+                nemico1.start_pos = (600, 400)
+                nemico1.tipo = "DRAGO"
                 nemico2 = None
             else:
                 # Livello 3: solo Scheletro
                 pos_iniziale_giocatore = (60, 390)
                 player = giocatore.Giocatore(60, 390, img_m_statica, frames_animati)
-                nemico1 = nemico.Nemico(500, 300, img_drago, grid_info)
+                nemico1 = nemico.Nemico(500, 300, img_scheletro, grid_info)
+                nemico1.start_pos = (500, 300)
+                nemico1.tipo = "SCHELETRO"
                 nemico2 = None
             stato_gioco = "IN_GIOCO"  # Inizia il gioco
 
@@ -615,17 +633,70 @@ def main():
                     else:  # Risposta sbagliata
                         # Riporta il giocatore all'inizio
                         player.rect.topleft = pos_iniziale_giocatore
-                        # Rimuovi il nemico (spostalo fuori dalla mappa)
-                        if nemico_che_ha_colpito == 1:
-                            nemico1.rect.topleft = (-1000, -1000)
-                        elif nemico_che_ha_colpito == 2:
-                            nemico2.rect.topleft = (-1000, -1000)
+                        # Avvia animazione del nemico colpito per 2 secondi
+                        # e poi riportalo al punto di partenza
+                        enemy_anim_timer = FPS * 2
+                        enemy_anim_index = 0
+                        if nemico_che_ha_colpito == 1 and nemico1:
+                            if getattr(nemico1, 'tipo', '') == 'DRAGO':
+                                enemy_anim_frames = anim_drago_fuoco or []
+                            elif getattr(nemico1, 'tipo', '') == 'MINOTAURO':
+                                enemy_anim_frames = anim_minotauro_sbuffa or []
+                            else:
+                                enemy_anim_frames = []
+                            enemy_anim_owner = 1
+                        elif nemico_che_ha_colpito == 2 and nemico2:
+                            if getattr(nemico2, 'tipo', '') == 'DRAGO':
+                                enemy_anim_frames = anim_drago_fuoco or []
+                            elif getattr(nemico2, 'tipo', '') == 'MINOTAURO':
+                                enemy_anim_frames = anim_minotauro_sbuffa or []
+                            else:
+                                enemy_anim_frames = []
+                            enemy_anim_owner = 2
                 
                 # Torna al gioco dopo il timer
                 if timer_feedback <= 0:
                     stato_gioco = "IN_GIOCO"
                     mostra_feedback = False
                     timer_feedback = 0
+
+            # --- Animazione nemico da mostrare durante il feedback (es. sbuffo/drago_fuoco) ---
+            if enemy_anim_timer > 0:
+                enemy_anim_timer -= 1
+                enemy_anim_index += 1
+                if enemy_anim_frames:
+                    # scegli frame
+                    idx = (enemy_anim_index // enemy_anim_frame_hold) % len(enemy_anim_frames)
+                    frame = enemy_anim_frames[idx]
+                    # calcola posizione sullo schermo (scala da v_screen -> screen)
+                    try:
+                        scale = LARGHEZZA / V_LARGHEZZA
+                        # usa il nemico owner per prendere la rect corretta
+                        if enemy_anim_owner == 1 and nemico1:
+                            sx = int((nemico1.rect.x - cam_x) * scale)
+                            sy = int((nemico1.rect.y - cam_y) * scale)
+                            screen.blit(frame, (sx, sy))
+                        elif enemy_anim_owner == 2 and nemico2:
+                            sx = int((nemico2.rect.x - cam_x) * scale)
+                            sy = int((nemico2.rect.y - cam_y) * scale)
+                            screen.blit(frame, (sx, sy))
+                    except Exception:
+                        pass
+
+                # quando finisce il timer, riporta il nemico al punto di partenza
+                if enemy_anim_timer <= 0:
+                    if enemy_anim_owner == 1 and nemico1 and hasattr(nemico1, 'start_pos'):
+                        nemico1.rect.center = nemico1.start_pos
+                        # pulisci eventuale path per evitare movimenti strani
+                        nemico1.path = []
+                        nemico1.target = None
+                    if enemy_anim_owner == 2 and nemico2 and hasattr(nemico2, 'start_pos'):
+                        nemico2.rect.center = nemico2.start_pos
+                        nemico2.path = []
+                        nemico2.target = None
+                    enemy_anim_owner = None
+                    enemy_anim_frames = []
+                    enemy_anim_index = 0
         
         # STATO: Vittoria
         elif stato_gioco == "VITTORIA":
