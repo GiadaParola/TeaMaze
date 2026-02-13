@@ -1,65 +1,50 @@
 # Importa librerie per il gioco
-import pygame  # Libreria principale per creare il gioco 2D
-import sys  # Per uscire dal programma
-import pytmx  # Per caricare mappe Tiled
-import random  # Per generare numeri casuali
-from PIL import Image  # Per elaborare immagini e GIF
-import os  # Per gestire i percorsi dei file
+import pygame
+import sys
+import pytmx
+import random
+import os
+
+# Importa moduli locali
 import giocatore    
 import nemico
-# Base directory per asset (cartella img collocata accanto a questo file)
-BASE_DIR = os.path.dirname(__file__)
-IMG_DIR = os.path.join(BASE_DIR, "img")
-
-
-# --- CONFIGURAZIONE ---
-FPS = 60  # Fotogrammi al secondo
-LARGHEZZA, ALTEZZA = 1920, 1080  # Risoluzione schermo principale
-ZOOM_FACTOR = 2  # Fattore di zoom (riduce la risoluzione di rendering)
-V_LARGHEZZA = LARGHEZZA // ZOOM_FACTOR  # Larghezza schermo virtuale (960)
-V_ALTEZZA = ALTEZZA // ZOOM_FACTOR  # Altezza schermo virtuale (540)
-
-def carica_immagine(nome, colore_fallback):
-    """Carica un'immagine, se fallisce crea una superficie di colore"""  
-    try:
-        return pygame.image.load(nome).convert_alpha()  # Carica l'immagine e ottimizzala
-    except:
-        s = pygame.Surface((100, 100))  # Se fallisce, crea una superficie 100x100
-        s.fill(colore_fallback)  # Riempila con il colore di fallback
-        return s  # Ritorna la superficie di colore
-
-def estrai_frames_gif(percorso, larghezza_desiderata):
-    """Estrae tutti i frame da una GIF e li ridimensiona"""
-    frames = []  # Lista che contiene tutti i frame
-    try:
-        with Image.open(percorso) as img:  # Apre il file GIF
-            w_orig, h_orig = img.size  # Prende le dimensioni originali
-            ratio = h_orig / w_orig  # Calcola il rapporto altezza/larghezza
-            nuova_dim = (larghezza_desiderata, int(larghezza_desiderata * ratio))  # Calcola nuove dimensioni mantenendo rapporto
-            for i in range(img.n_frames):  # Cicla per ogni frame della GIF
-                img.seek(i)  # Vai al frame i-esimo
-                f = img.convert("RGBA")  # Converte il frame in formato RGBA
-                p_img = pygame.image.fromstring(f.tobytes(), img.size, "RGBA")  # Converte in surface pygame
-                frames.append(pygame.transform.scale(p_img, nuova_dim))  # Ridimensiona e aggiungi a frames
-    except: 
-        print(f"Impossibile caricare la GIF: {percorso}")  # Se errore, stampa messaggio
-    return frames  # Ritorna lista di frame
-
-
-def crea_superficie_luce(raggio):
-    # Crea una superficie quadrata per la luce
-    superficie = pygame.Surface((raggio * 2, raggio * 2), pygame.SRCALPHA)
-    for r in range(raggio, 0, -1):
-        # Calcola l'alpha: più esterno = più scuro
-        # 255 è nero, 0 è trasparente
-        alpha = int(255 * (r / raggio)) 
-        pygame.draw.circle(superficie, (0, 0, 0, alpha), (raggio, raggio), r)
-    return superficie
+from utilita import carica_immagine, estrai_frames_gif, crea_superficie_luce
+from costanti import *
+from domande import DOMANDE
     
 
 def main():
     """Funzione principale del gioco"""
     pygame.init()  # Inizializza la libreria pygame
+    # Inizializza il mixer audio (se possibile)
+    try:
+        pygame.mixer.init()
+    except Exception:
+        pass
+
+    # Mappa delle musica: assegna i file presenti in TEST/sounds
+    SOUNDS_DIR = os.path.join(BASE_DIR, "sounds")
+    MUSIC_FILES = {
+        "MENU": os.path.join(SOUNDS_DIR, "awesomeness.wav"),
+        "LIVELLO1": os.path.join(SOUNDS_DIR, "01 First Light.mp3"),
+        "LIVELLO2": os.path.join(SOUNDS_DIR, "05 Sanctuary.mp3"),
+        "LIVELLO3": os.path.join(SOUNDS_DIR, "11 Chronicles of the Archive.mp3"),
+    }
+
+    current_music = None
+
+    def play_music(path, volume=0.6):
+        nonlocal current_music
+        try:
+            if not path or current_music == path:
+                return
+            pygame.mixer.music.load(path)
+            pygame.mixer.music.set_volume(volume)
+            pygame.mixer.music.play(-1)  # loop infinito
+            current_music = path
+        except Exception:
+            # Se il file non esiste o mixer non inizializzato, ignoriamo
+            current_music = None
     
     screen = pygame.display.set_mode((LARGHEZZA, ALTEZZA))  # Crea finestra principale 1920x1080
     v_screen = pygame.Surface((V_LARGHEZZA, V_ALTEZZA))  # Superficie virtuale per il rendering (960x540)
@@ -70,6 +55,7 @@ def main():
     img_m_statica = carica_immagine(os.path.join(IMG_DIR, "personaggioM.png"), (0, 0, 255))  # Immagine giocatore statica (fallback blu)
     img_minotauro = carica_immagine(os.path.join(IMG_DIR, "minotauro.png"), (200, 0, 0))  # Immagine nemico (fallback rosso)
     img_scheletro = carica_immagine(os.path.join(IMG_DIR, "scheletroOro.png"), (400, 0, 0)) 
+    img_drago = carica_immagine(os.path.join(IMG_DIR, "drago.png"), (200, 100, 0))  # Immagine drago
     img_bosco_base = carica_immagine(os.path.join(IMG_DIR, "bosco.png"), (30, 30, 30))  # Immagine sfondo bosco (fallback grigio)
     try:
         # Carica lo sfondo del menu
@@ -84,6 +70,21 @@ def main():
     ZOOM_SFONDO = 1.8  # Fattore di zoom per lo sfondo
     nw, nh = int(V_LARGHEZZA * ZOOM_SFONDO), int(V_ALTEZZA * ZOOM_SFONDO)  # Nuove dimensioni zoom
     img_bosco = pygame.transform.scale(img_bosco_base, (nw, nh))  # Ridimensiona l'immagine
+    # Carica animazioni direzionali (versione piccola per il gioco)
+    anim_M_forward = estrai_frames_gif(os.path.join(IMG_DIR, "personaggioMAnimato.gif"), 40)
+    anim_M_up = estrai_frames_gif(os.path.join(IMG_DIR, "suAnimatoM.gif"), 28)
+    anim_M_down = estrai_frames_gif(os.path.join(IMG_DIR, "giuAnimatoM.gif"), 28)
+    anim_M_left = [pygame.transform.flip(f, True, False) for f in anim_M_forward] if anim_M_forward else []
+
+    anim_F_forward = estrai_frames_gif(os.path.join(IMG_DIR, "personaggioFAnimato.gif"), 26)
+    anim_F_up = estrai_frames_gif(os.path.join(IMG_DIR, "suAnimatoF.gif"), 20)
+    anim_F_down = estrai_frames_gif(os.path.join(IMG_DIR, "giuAnimatoF.gif"), 20)
+    anim_F_left = [pygame.transform.flip(f, True, False) for f in anim_F_forward] if anim_F_forward else []
+
+    # Dizionari utili per selezione animazioni runtime
+    anims_M = {"forward": anim_M_forward, "up": anim_M_up, "down": anim_M_down, "left": anim_M_left, "right": anim_M_forward}
+    anims_F = {"forward": anim_F_forward, "up": anim_F_up, "down": anim_F_down, "left": anim_F_left, "right": anim_F_forward}
+    anims_corrente = None
     larghezza_btn = 300
     altezza_btn = 70
     centro_x = LARGHEZZA // 2 - larghezza_btn // 2
@@ -97,11 +98,35 @@ def main():
 
     # Inizializza variabili di stato
     stato_gioco = "MENU_PRINCIPALE"  # Stato iniziale del gioco
+    prev_state = None
     personaggio_scelto = None  # Personaggio non ancora scelto
-    livelli_possibili = [os.path.join(IMG_DIR, 'mappa1.tmx'), os.path.join(IMG_DIR, 'mappa2.tmx'), os.path.join(IMG_DIR, 'mappa3.tmx')]  # Livello non ancora scelto]
+    livelli_possibili = [os.path.join(IMG_DIR, 'mappa1.tmx'), os.path.join(IMG_DIR, 'mappa3.tmx'), os.path.join(IMG_DIR, 'mappa2.tmx')]  # Livello non ancora scelto]
     frames_animati = []  # Lista frames animazione giocatore
     raggio_luce = 200
+    raggio_luce_min = 100  # Raggio minimo del campo visivo
+    raggio_luce_max = 400  # Raggio massimo del campo visivo
+    incremento_raggio = 3  # Incremento lineare del raggio per frame quando si preme E
     luce_mask = crea_superficie_luce(raggio_luce)
+    
+    # Sistema di domande e risposte (importato da domande.py)
+    domanda_attiva = None  # Domanda corrente
+    nemico_che_ha_colpito = None  # Quale nemico ha colpito (1 o 2)
+    risposta_selezionata = None  # Risposta selezionata dall'utente
+    mostra_feedback = False  # Se mostrare il feedback (verde/rosso)
+    feedback_colore = False  # True se risposta giusta, False se sbagliata
+    timer_feedback = 0  # Counter per il feedback (90 = 1.5 secondi a 60 FPS)
+    
+    # Variabili per i nemici e il giocatore (saranno inizializzate nello stato INIZIALIZZA)
+    player = None
+    nemico1 = None
+    nemico2 = None
+    tmx_data = None
+    muri = []
+    rect_uscita = None
+    fine_tiles = []
+    pos_iniziale_giocatore = (0, 0)
+    livello_scelto = None
+    
     # Personaggi disponibili per il menu di selezione
     personaggi = [
         {
@@ -121,6 +146,23 @@ def main():
     while True:
         event = pygame.event.get()
         mouse_pos = pygame.mouse.get_pos()
+        # Cambia la traccia se lo stato è cambiato
+        if stato_gioco != prev_state:
+            if stato_gioco == "MENU_PRINCIPALE":
+                play_music(MUSIC_FILES.get("MENU"))
+            elif stato_gioco == "IN_GIOCO":
+                # Scegli la musica in base al livello selezionato
+                try:
+                    if livello_scelto == livelli_possibili[0]:
+                        play_music(MUSIC_FILES.get("LIVELLO1"))
+                    elif livello_scelto == livelli_possibili[1]:
+                        play_music(MUSIC_FILES.get("LIVELLO2"))
+                    else:
+                        play_music(MUSIC_FILES.get("LIVELLO3"))
+                except Exception:
+                    pass
+            # aggiorna lo stato precedente
+            prev_state = stato_gioco
         
         for e in event:
             if e.type == pygame.QUIT: 
@@ -228,11 +270,13 @@ def main():
                     elif btn_select.collidepoint(e.pos):
                         # Conferma selezione personaggio
                         personaggio_scelto = personaggio_corrente["codice"]
-                        # Usa una versione più piccola della GIF per il gioco vero e proprio
+                        # Assegna il dizionario di animazioni corretto
                         if personaggio_scelto == "M":
-                            frames_animati = estrai_frames_gif(os.path.join(IMG_DIR, "personaggioMAnimato.gif"), 28)
+                            anims_corrente = anims_M
+                            frames_animati = anim_M_forward
                         elif personaggio_scelto == "F":
-                            frames_animati = estrai_frames_gif(os.path.join(IMG_DIR, "personaggioFAnimato.gif"), 28)
+                            anims_corrente = anims_F
+                            frames_animati = anim_F_forward
                         stato_gioco = "SELEZIONE_LIVELLO"
         elif stato_gioco == "SELEZIONE_LIVELLO":
 
@@ -311,25 +355,97 @@ def main():
                             rect_uscita = pygame.Rect(obj.x, obj.y, obj.width, obj.height)
 
             # Crea istanze giocatore e nemico
+            # Costruisci mappa di tile percorribili: tile non coincidono con muri o con tile "Fine"
+            tile_w = getattr(tmx_data, 'tilewidth', 32)
+            tile_h = getattr(tmx_data, 'tileheight', 32)
+            map_w = tmx_data.width
+            map_h = tmx_data.height
+
+            passable_tiles = set()
+            for ty in range(map_h):
+                for tx in range(map_w):
+                    tile_rect = pygame.Rect(tx*tile_w, ty*tile_h, tile_w, tile_h)
+                    blocked = False
+                    for m in muri:
+                        if tile_rect.colliderect(m):
+                            blocked = True
+                            break
+                    if blocked:
+                        continue
+                    # escludi tile di fine livello
+                    for fr in fine_tiles:
+                        if tile_rect.colliderect(fr):
+                            blocked = True
+                            break
+                    if blocked:
+                        continue
+                    passable_tiles.add((tx, ty))
+
+            grid_info = {
+                'passable': passable_tiles,
+                'tile_w': tile_w,
+                'tile_h': tile_h,
+                'map_w': map_w,
+                'map_h': map_h
+            }
+
             if(livello_scelto==livelli_possibili[0]):
-            
-                player = giocatore.Giocatore(90, 70, img_m_statica, frames_animati)  # Giocatore a posizione 100,100
+                # Livello 1: solo Minotauro
+                pos_iniziale_giocatore = (90, 70)
+                player = giocatore.Giocatore(90, 70, img_m_statica, frames_animati)
+                nemico1 = nemico.Nemico(400, 400, img_minotauro, grid_info)
+                nemico2 = None
             elif(livello_scelto==livelli_possibili[1]):
-                player = giocatore.Giocatore(60, 390, img_m_statica, frames_animati)
-            else:
+                # Livello 2: solo Drago
+                pos_iniziale_giocatore = (440, 580)
                 player = giocatore.Giocatore(440, 580, img_m_statica, frames_animati)
-                
-            nemico1 = nemico.Nemico(400, 400, img_minotauro)  # Nemico a posizione 400,400
-            nemico2 = nemico.Nemico(800, 800, img_scheletro)  # Nemico a posizione 400,400
+                nemico1 = nemico.Nemico(600, 400, img_scheletro, grid_info)
+                nemico2 = None
+            else:
+                # Livello 3: solo Scheletro
+                pos_iniziale_giocatore = (60, 390)
+                player = giocatore.Giocatore(60, 390, img_m_statica, frames_animati)
+                nemico1 = nemico.Nemico(500, 300, img_drago, grid_info)
+                nemico2 = None
             stato_gioco = "IN_GIOCO"  # Inizia il gioco
 
         # STATO: Gioco in corso
         elif stato_gioco == "IN_GIOCO":
             keys = pygame.key.get_pressed()  # Prendi lo stato di tutte le tastiere
+            
+            # Gestione animazioni in base alla direzione
+            if anims_corrente:
+                if keys[pygame.K_UP]:
+                    player.frames = anims_corrente["up"]
+                elif keys[pygame.K_DOWN]:
+                    player.frames = anims_corrente["down"]
+                elif keys[pygame.K_LEFT]:
+                    player.frames = anims_corrente["left"]
+                elif keys[pygame.K_RIGHT]:
+                    player.frames = anims_corrente["right"]
+                else:
+                    # Se non premi alcun tasto, torna all'animazione standard (forward)
+                    player.frames = anims_corrente["forward"]
+            
+            # Gestione espansione del campo visivo con tasto E
+            if keys[pygame.K_e]:
+                raggio_luce = min(raggio_luce + incremento_raggio, raggio_luce_max)
+                # Rigenera la maschera di luce quando il raggio cambia
+                luce_mask = crea_superficie_luce(raggio_luce)
+            
+            # Gestione rimpicciolimento del campo visivo con tasto R
+            if keys[pygame.K_r]:
+                raggio_luce = max(raggio_luce - incremento_raggio, raggio_luce_min)
+                # Rigenera la maschera di luce quando il raggio cambia
+                luce_mask = crea_superficie_luce(raggio_luce)
+            
+            keys = pygame.key.get_pressed()  # Prendi lo stato di tutte le tastiere
             # Calcola movimento in base ai tasti: RIGHT-LEFT per X, DOWN-UP per Y, moltiplicato per 2
-            player.muovi((keys[pygame.K_RIGHT]-keys[pygame.K_LEFT])*2, (keys[pygame.K_DOWN]-keys[pygame.K_UP])*2, muri)
-            nemico1.muovi_auto(muri)  # Muove il nemico in modo autonomo
-            nemico2.muovi_auto(muri)  # Muove il nemico in modo autonomo
+            player.muovi(keys, muri)
+            if nemico1:
+                nemico1.muovi_auto(muri)
+            if nemico2:
+                nemico2.muovi_auto(muri)
 
             # Controlla vittoria: se giocatore raggiunge l'uscita (oggetto) o una tile con classe "Fine"
             if rect_uscita and player.rect.colliderect(rect_uscita):
@@ -339,9 +455,19 @@ def main():
                     if player.rect.colliderect(fine_rect):
                         stato_gioco = "VITTORIA"
                         break
-            # Controlla sconfitta: se giocatore collide con nemico, ritorna all'inizio
-            if player.rect.colliderect(nemico1.rect): player.rect.topleft = (100, 100)
-            if player.rect.colliderect(nemico2.rect): player.rect.topleft = (100, 100)
+            # Controlla sconfitta: se giocatore collide con nemico, apre domanda
+            if nemico1 and player.rect.colliderect(nemico1.rect):
+                domanda_attiva = random.choice(DOMANDE)
+                nemico_che_ha_colpito = 1
+                risposta_selezionata = None
+                mostra_feedback = False
+                stato_gioco = "DOMANDA_RISPOSTA"
+            if nemico2 and player.rect.colliderect(nemico2.rect):
+                domanda_attiva = random.choice(DOMANDE)
+                nemico_che_ha_colpito = 2
+                risposta_selezionata = None
+                mostra_feedback = False
+                stato_gioco = "DOMANDA_RISPOSTA"
 
             # Calcola posizione della camera centrata sul giocatore
             cam_x = player.rect.centerx - V_LARGHEZZA//2  # Camera X
@@ -356,8 +482,10 @@ def main():
                         if tile: v_screen.blit(tile, (x*32-cam_x, y*32-cam_y))  # Disegna tile adattato a camera
             
             # Disegna nemico e giocatore
-            nemico1.draw(v_screen, (cam_x, cam_y))  # Disegna nemico1
-            nemico2.draw(v_screen, (cam_x, cam_y))  # Disegna nemico2
+            if nemico1:
+                nemico1.draw(v_screen, (cam_x, cam_y))  # Disegna nemico1
+            if nemico2:
+                nemico2.draw(v_screen, (cam_x, cam_y))  # Disegna nemico2
             player.draw(v_screen, (cam_x, cam_y))  # Disegna giocatore
             # Ridimensiona lo schermo virtuale alla risoluzione reale e lo mostra
             screen.blit(pygame.transform.scale(v_screen, (LARGHEZZA, ALTEZZA)), (0,0))
@@ -404,6 +532,101 @@ def main():
 
             # Disegno finale
             screen.blit(pygame.transform.scale(v_screen, (LARGHEZZA, ALTEZZA)), (0, 0))
+        
+        # STATO: Domanda a risposta multipla
+        elif stato_gioco == "DOMANDA_RISPOSTA":
+            # Disegna il gioco in pausa sullo sfondo
+            screen.blit(pygame.transform.scale(v_screen, (LARGHEZZA, ALTEZZA)), (0, 0))
+            
+            # Overlay semi-trasparente per evidenziare la finestra
+            overlay = pygame.Surface((LARGHEZZA, ALTEZZA))
+            overlay.set_alpha(80)  # Più trasparente per vedere la mappa dietro
+            overlay.fill((0, 0, 0))
+            screen.blit(overlay, (0, 0))
+            
+            # Finestra bianca con la domanda (più piccola)
+            larghezza_finestra = 650
+            altezza_finestra = 400
+            x_finestra = LARGHEZZA // 2 - larghezza_finestra // 2
+            y_finestra = ALTEZZA // 2 - altezza_finestra // 2
+            pygame.draw.rect(screen, (255, 255, 255), (x_finestra, y_finestra, larghezza_finestra, altezza_finestra))
+            pygame.draw.rect(screen, (0, 0, 0), (x_finestra, y_finestra, larghezza_finestra, altezza_finestra), 3)
+            
+            # Testo della domanda
+            font_domanda = pygame.font.SysFont("Arial", 24, bold=True)
+            txt_domanda = font_domanda.render(domanda_attiva["testo"], True, (0, 0, 0))
+            screen.blit(txt_domanda, (x_finestra + 30, y_finestra + 20))
+            
+            # Opzioni a risposta multipla
+            font_opzioni = pygame.font.SysFont("Arial", 18)
+            lettere = ['A', 'B', 'C', 'D']
+            rect_opzioni = []
+            
+            for i, opzione in enumerate(domanda_attiva["opzioni"]):
+                y_opzione = y_finestra + 100 + i * 60
+                x_opzione = x_finestra + 30
+                larghezza_opzione = larghezza_finestra - 60
+                altezza_opzione = 50
+                
+                rect_opt = pygame.Rect(x_opzione, y_opzione, larghezza_opzione, altezza_opzione)
+                rect_opzioni.append(rect_opt)
+                
+                # Colore dell'opzione
+                if mostra_feedback:
+                    if i == domanda_attiva["risposta_corretta"]:
+                        colore = (0, 200, 0)  # Verde per la risposta giusta
+                    elif i == risposta_selezionata:
+                        colore = (200, 0, 0)  # Rosso per la risposta sbagliata selezionata
+                    else:
+                        colore = (200, 200, 200)
+                else:
+                    colore = (200, 200, 200)
+                
+                pygame.draw.rect(screen, colore, rect_opt)
+                pygame.draw.rect(screen, (0, 0, 0), rect_opt, 2)
+                
+                # Testo opzione
+                txt_lettera = font_opzioni.render(f"{lettere[i]})", True, (0, 0, 0))
+                txt_opzione = font_opzioni.render(opzione, True, (0, 0, 0))
+                screen.blit(txt_lettera, (x_opzione + 15, y_opzione + 10))
+                screen.blit(txt_opzione, (x_opzione + 60, y_opzione + 10))
+            
+            # Gestione click su opzioni
+            for e in event:
+                if e.type == pygame.MOUSEBUTTONDOWN and not mostra_feedback:
+                    for i, rect_opt in enumerate(rect_opzioni):
+                        if rect_opt.collidepoint(e.pos):
+                            risposta_selezionata = i
+                            feedback_colore = (i == domanda_attiva["risposta_corretta"])
+                            mostra_feedback = True
+                            timer_feedback = 90  # 1.5 secondi a 60 FPS
+            
+            # Se il feedback è mostrato, decrementa il timer
+            if mostra_feedback:
+                timer_feedback -= 1
+                
+                if timer_feedback == 89:  # Immediatamente dopo la selezione
+                    if feedback_colore:  # Risposta giusta
+                        # Rimuovi il nemico che ha colpito (spostalo fuori dalla mappa)
+                        if nemico_che_ha_colpito == 1:
+                            nemico1.rect.topleft = (-1000, -1000)
+                        elif nemico_che_ha_colpito == 2:
+                            nemico2.rect.topleft = (-1000, -1000)
+                    else:  # Risposta sbagliata
+                        # Riporta il giocatore all'inizio
+                        player.rect.topleft = pos_iniziale_giocatore
+                        # Rimuovi il nemico (spostalo fuori dalla mappa)
+                        if nemico_che_ha_colpito == 1:
+                            nemico1.rect.topleft = (-1000, -1000)
+                        elif nemico_che_ha_colpito == 2:
+                            nemico2.rect.topleft = (-1000, -1000)
+                
+                # Torna al gioco dopo il timer
+                if timer_feedback <= 0:
+                    stato_gioco = "IN_GIOCO"
+                    mostra_feedback = False
+                    timer_feedback = 0
+        
         # STATO: Vittoria
         elif stato_gioco == "VITTORIA":
             screen.fill((0, 80, 0))  # Sfondo verde scuro
