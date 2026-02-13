@@ -65,16 +65,6 @@ def main():
         # Fallback se l'immagine manca
         img_menu = pygame.Surface((LARGHEZZA, ALTEZZA))
         img_menu.fill((20, 20, 20))
-    # Carica schermata selezione livelli e preview mappe
-    try:
-        img_selezione = pygame.image.load(os.path.join(IMG_DIR, "imgMappe", "selezioneLivelli.png")).convert()
-        img_selezione = pygame.transform.scale(img_selezione, (LARGHEZZA, ALTEZZA))
-    except:
-        img_selezione = None
-
-    preview1 = carica_immagine(os.path.join(IMG_DIR, "imgMappe", "mappa1.png"), (80, 80, 80))
-    preview2 = carica_immagine(os.path.join(IMG_DIR, "imgMappe", "mappa2.png"), (80, 80, 80))
-    preview3 = carica_immagine(os.path.join(IMG_DIR, "imgMappe", "mappa3.png"), (80, 80, 80))
     # Prepara lo sfondo del bosco
     
     ZOOM_SFONDO = 1.8  # Fattore di zoom per lo sfondo
@@ -95,9 +85,6 @@ def main():
     anims_M = {"forward": anim_M_forward, "up": anim_M_up, "down": anim_M_down, "left": anim_M_left, "right": anim_M_forward}
     anims_F = {"forward": anim_F_forward, "up": anim_F_up, "down": anim_F_down, "left": anim_F_left, "right": anim_F_forward}
     anims_corrente = None
-    # Animazioni nemici (attacchi/pose da fermo)
-    anim_drago_fuoco = estrai_frames_gif(os.path.join(IMG_DIR, "dragoFuoco.gif"), 120)
-    anim_minotauro_sbuffa = estrai_frames_gif(os.path.join(IMG_DIR, "sbuffoGif.gif"), 100)
     larghezza_btn = 300
     altezza_btn = 70
     centro_x = LARGHEZZA // 2 - larghezza_btn // 2
@@ -139,15 +126,6 @@ def main():
     fine_tiles = []
     pos_iniziale_giocatore = (0, 0)
     livello_scelto = None
-    # Posizioni iniziali dei nemici (per reset dopo animazione)
-    nemico1_start = None
-    nemico2_start = None
-    # Stato animazione nemico dopo risposta sbagliata
-    enemy_anim_timer = 0
-    enemy_anim_frames = []
-    enemy_anim_owner = None
-    enemy_anim_index = 0
-    enemy_anim_frame_hold = 5
     
     # Personaggi disponibili per il menu di selezione
     personaggi = [
@@ -301,41 +279,36 @@ def main():
                             frames_animati = anim_F_forward
                         stato_gioco = "SELEZIONE_LIVELLO"
         elif stato_gioco == "SELEZIONE_LIVELLO":
-            # Disegna sfondo della selezione (immagine se disponibile)
-            if img_selezione:
-                screen.blit(img_selezione, (0, 0))
-            else:
-                screen.fill((30, 30, 60))
 
-            # Mostra tre preview centrali cliccabili
-            pv_w, pv_h = 420, 260
-            spacing = 60
-            total_w = pv_w * 3 + spacing * 2
-            start_x = LARGHEZZA // 2 - total_w // 2
-            y = ALTEZZA // 2 - pv_h // 2
+            screen.fill((20, 20, 60))
 
-            previews = [preview1, preview2, preview3]
-            rects = []
-            for i, pv in enumerate(previews):
-                x = start_x + i * (pv_w + spacing)
-                pv_scaled = pygame.transform.scale(pv, (pv_w, pv_h))
-                rect = pygame.Rect(x, y, pv_w, pv_h)
-                rects.append(rect)
-                # highlight on hover
-                col = (200, 200, 200) if rect.collidepoint(mouse_pos) else (120, 120, 120)
-                pygame.draw.rect(screen, (0, 0, 0), rect.inflate(8, 8))
-                screen.blit(pv_scaled, (x, y))
-                # label
-                txt = font.render(f"LIVELLO {i+1}", True, (255, 255, 255))
-                screen.blit(txt, (x + 10, y + 10))
+            btn_lvl1 = pygame.Rect(700, 350, 400, 80)
+            btn_lvl2 = pygame.Rect(700, 470, 400, 80)
+            btn_lvl3 = pygame.Rect(700, 590, 400, 80)
 
-            # Click sulle preview apre il livello corrispondente
+            pygame.draw.rect(screen, (0,120,200), btn_lvl1, border_radius=15)
+            pygame.draw.rect(screen, (0,160,220), btn_lvl2, border_radius=15)
+            pygame.draw.rect(screen, (0,200,240), btn_lvl3, border_radius=15)
+
+            screen.blit(font.render("LIVELLO 1", True, (255,255,255)), (btn_lvl1.x+90, btn_lvl1.y+15))
+            screen.blit(font.render("LIVELLO 2", True, (255,255,255)), (btn_lvl2.x+90, btn_lvl2.y+15))
+            screen.blit(font.render("LIVELLO 3", True, (255,255,255)), (btn_lvl3.x+90, btn_lvl3.y+15))
+
             for e in event:
                 if e.type == pygame.MOUSEBUTTONDOWN:
-                    for i, r in enumerate(rects):
-                        if r.collidepoint(e.pos):
-                            livello_scelto = livelli_possibili[i]
-                            stato_gioco = "INIZIALIZZA"
+
+                    if btn_lvl1.collidepoint(e.pos):
+                        livello_scelto = livelli_possibili[0] # Livello 1 è mappa1.tmx
+                        stato_gioco = "INIZIALIZZA"
+
+                    if btn_lvl2.collidepoint(e.pos):
+                        livello_scelto = livelli_possibili[1] # Livello 2 è mappa2.tmx
+                        stato_gioco = "INIZIALIZZA"
+                        print("livello 2 selezionato")
+
+                    if btn_lvl3.collidepoint(e.pos):
+                        livello_scelto = livelli_possibili[2] # Livello 3 è mappa3.tmx
+                        stato_gioco = "INIZIALIZZA"
             # STATO: Inizializza mappa e oggetti di gioco
         elif stato_gioco == "INIZIALIZZA":
             if livello_scelto is None:
@@ -421,24 +394,18 @@ def main():
                 pos_iniziale_giocatore = (90, 70)
                 player = giocatore.Giocatore(90, 70, img_m_statica, frames_animati)
                 nemico1 = nemico.Nemico(400, 400, img_minotauro, grid_info)
-                nemico1.start_pos = (400, 400)
-                nemico1.tipo = "MINOTAURO"
                 nemico2 = None
             elif(livello_scelto==livelli_possibili[1]):
                 # Livello 2: solo Drago
                 pos_iniziale_giocatore = (440, 580)
                 player = giocatore.Giocatore(440, 580, img_m_statica, frames_animati)
-                nemico1 = nemico.Nemico(600, 400, img_drago, grid_info)
-                nemico1.start_pos = (600, 400)
-                nemico1.tipo = "DRAGO"
+                nemico1 = nemico.Nemico(600, 400, img_scheletro, grid_info)
                 nemico2 = None
             else:
                 # Livello 3: solo Scheletro
                 pos_iniziale_giocatore = (60, 390)
                 player = giocatore.Giocatore(60, 390, img_m_statica, frames_animati)
-                nemico1 = nemico.Nemico(500, 300, img_scheletro, grid_info)
-                nemico1.start_pos = (500, 300)
-                nemico1.tipo = "SCHELETRO"
+                nemico1 = nemico.Nemico(500, 300, img_drago, grid_info)
                 nemico2 = None
             stato_gioco = "IN_GIOCO"  # Inizia il gioco
 
@@ -472,7 +439,7 @@ def main():
                 # Rigenera la maschera di luce quando il raggio cambia
                 luce_mask = crea_superficie_luce(raggio_luce)
             
-            # Calcola movimento in base a come muovi la testa
+            # Calcola movimento in base a come muovi la
             player.muovi(muri)
             if nemico1:
                 nemico1.muovi_auto(muri)
@@ -647,70 +614,17 @@ def main():
                     else:  # Risposta sbagliata
                         # Riporta il giocatore all'inizio
                         player.rect.topleft = pos_iniziale_giocatore
-                        # Avvia animazione del nemico colpito per 2 secondi
-                        # e poi riportalo al punto di partenza
-                        enemy_anim_timer = FPS * 2
-                        enemy_anim_index = 0
-                        if nemico_che_ha_colpito == 1 and nemico1:
-                            if getattr(nemico1, 'tipo', '') == 'DRAGO':
-                                enemy_anim_frames = anim_drago_fuoco or []
-                            elif getattr(nemico1, 'tipo', '') == 'MINOTAURO':
-                                enemy_anim_frames = anim_minotauro_sbuffa or []
-                            else:
-                                enemy_anim_frames = []
-                            enemy_anim_owner = 1
-                        elif nemico_che_ha_colpito == 2 and nemico2:
-                            if getattr(nemico2, 'tipo', '') == 'DRAGO':
-                                enemy_anim_frames = anim_drago_fuoco or []
-                            elif getattr(nemico2, 'tipo', '') == 'MINOTAURO':
-                                enemy_anim_frames = anim_minotauro_sbuffa or []
-                            else:
-                                enemy_anim_frames = []
-                            enemy_anim_owner = 2
+                        # Rimuovi il nemico (spostalo fuori dalla mappa)
+                        if nemico_che_ha_colpito == 1:
+                            nemico1.rect.topleft = (-1000, -1000)
+                        elif nemico_che_ha_colpito == 2:
+                            nemico2.rect.topleft = (-1000, -1000)
                 
                 # Torna al gioco dopo il timer
                 if timer_feedback <= 0:
                     stato_gioco = "IN_GIOCO"
                     mostra_feedback = False
                     timer_feedback = 0
-
-            # --- Animazione nemico da mostrare durante il feedback (es. sbuffo/drago_fuoco) ---
-            if enemy_anim_timer > 0:
-                enemy_anim_timer -= 1
-                enemy_anim_index += 1
-                if enemy_anim_frames:
-                    # scegli frame
-                    idx = (enemy_anim_index // enemy_anim_frame_hold) % len(enemy_anim_frames)
-                    frame = enemy_anim_frames[idx]
-                    # calcola posizione sullo schermo (scala da v_screen -> screen)
-                    try:
-                        scale = LARGHEZZA / V_LARGHEZZA
-                        # usa il nemico owner per prendere la rect corretta
-                        if enemy_anim_owner == 1 and nemico1:
-                            sx = int((nemico1.rect.x - cam_x) * scale)
-                            sy = int((nemico1.rect.y - cam_y) * scale)
-                            screen.blit(frame, (sx, sy))
-                        elif enemy_anim_owner == 2 and nemico2:
-                            sx = int((nemico2.rect.x - cam_x) * scale)
-                            sy = int((nemico2.rect.y - cam_y) * scale)
-                            screen.blit(frame, (sx, sy))
-                    except Exception:
-                        pass
-
-                # quando finisce il timer, riporta il nemico al punto di partenza
-                if enemy_anim_timer <= 0:
-                    if enemy_anim_owner == 1 and nemico1 and hasattr(nemico1, 'start_pos'):
-                        nemico1.rect.center = nemico1.start_pos
-                        # pulisci eventuale path per evitare movimenti strani
-                        nemico1.path = []
-                        nemico1.target = None
-                    if enemy_anim_owner == 2 and nemico2 and hasattr(nemico2, 'start_pos'):
-                        nemico2.rect.center = nemico2.start_pos
-                        nemico2.path = []
-                        nemico2.target = None
-                    enemy_anim_owner = None
-                    enemy_anim_frames = []
-                    enemy_anim_index = 0
         
         # STATO: Vittoria
         elif stato_gioco == "VITTORIA":
