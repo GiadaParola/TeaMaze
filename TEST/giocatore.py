@@ -38,7 +38,14 @@ class Giocatore:
 
         # --- Cambia direzione con i tasti ---
         if tasti_premuti[pygame.K_RIGHT]:
-            self.direzione = (self.direzione + 1) % 4
+            self.direzione = 3
+        elif tasti_premuti[pygame.K_UP]:
+            self.direzione = 2
+        elif tasti_premuti[pygame.K_LEFT]:
+            self.direzione = 1
+        elif tasti_premuti[pygame.K_DOWN]:
+            self.direzione = 0
+
 
         # --- Calcola dx, dy ---
         dx = dy = 0
