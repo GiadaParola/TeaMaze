@@ -29,13 +29,14 @@ def main():
     SOUNDS_DIR = os.path.join(BASE_DIR, "sounds")
     MUSIC_FILES = {
         "MENU": os.path.join(SOUNDS_DIR, "awesomeness.wav"),
-        "LIVELLO1": os.path.join(SOUNDS_DIR, "01_First_Light.mp3"),
-        "LIVELLO2": os.path.join(SOUNDS_DIR, "05_Sanctuary.mp3"),
-        "LIVELLO3": os.path.join(SOUNDS_DIR, "11_Chronicles_of_the_Archive.mp3"),
+        "LIVELLO1": os.path.join(SOUNDS_DIR, "01 First Light.mp3"),
+        "LIVELLO2": os.path.join(SOUNDS_DIR, "05 Sanctuary.mp3"),
+        "LIVELLO3": os.path.join(SOUNDS_DIR, "11 Chronicles of the Archive.mp3"),
     }
 
 
     current_music = None
+
 
     def play_music(path, volume=0.6):
         nonlocal current_music
