@@ -1,7 +1,7 @@
 import numpy as np
 from muse import Muse
 
-class MuseGyro(Muse):
+class MuseGYRO(Muse):
     FS_GYRO = 52
     GYRO_CH = 3
 
