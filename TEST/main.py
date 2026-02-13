@@ -66,13 +66,7 @@ def main():
         img_menu = pygame.Surface((LARGHEZZA, ALTEZZA))
         img_menu.fill((20, 20, 20))
     # Carica schermata selezione livelli e preview mappe
-    try:
-        img_selezione_raw = pygame.image.load(os.path.join(IMG_DIR, "imgMappe", "selezioneLivelli.png")).convert()
-        # Centra e adatta proporzioni 1920x1080
-        img_selezione = pygame.transform.smoothscale(img_selezione_raw, (1920, 1080))
-    except Exception as e:
-        print(f"Errore caricamento selezioneLivelli.png: {e}")
-        img_selezione = None
+    img_selezione = None  # Non usare più immagine di sfondo per la selezione livelli
 
     preview1 = carica_immagine(os.path.join(IMG_DIR, "imgMappe", "mappa1.png"), (80, 80, 80))
     preview2 = carica_immagine(os.path.join(IMG_DIR, "imgMappe", "mappa2.png"), (80, 80, 80))
@@ -303,20 +297,18 @@ def main():
                             frames_animati = anim_F_forward
                         stato_gioco = "SELEZIONE_LIVELLO"
         elif stato_gioco == "SELEZIONE_LIVELLO":
-            # Disegna sfondo della selezione (immagine centrata e proporzionata)
-            if img_selezione:
-                screen.blit(img_selezione, (0, 0))
-            else:
-                screen.fill((30, 30, 60))
+            # Sfondo bianco
+            screen.fill((255, 255, 255))
 
-            # Preview grandi e allineate alle finestre cliccabili
-            pv_w, pv_h = 520, 340  # più grandi
-            spacing = 80
+            # Preview più piccole e inverti 2 e 3
+            pv_w, pv_h = 340, 210
+            spacing = 70
             total_w = pv_w * 3 + spacing * 2
             start_x = LARGHEZZA // 2 - total_w // 2
             y = ALTEZZA // 2 - pv_h // 2 + 40
 
-            previews = [preview1, preview2, preview3]
+            # Inverti preview2 e preview3
+            previews = [preview1, preview3, preview2]
             rects = []
             for i, pv in enumerate(previews):
                 x = start_x + i * (pv_w + spacing)
@@ -325,20 +317,26 @@ def main():
                 rects.append(rect)
                 # highlight on hover
                 if rect.collidepoint(mouse_pos):
-                    pygame.draw.rect(screen, (255, 255, 0), rect.inflate(16, 16), 6)
+                    pygame.draw.rect(screen, (255, 200, 0), rect.inflate(12, 12), 5)
                 else:
-                    pygame.draw.rect(screen, (0, 0, 0), rect.inflate(12, 12), 4)
+                    pygame.draw.rect(screen, (0, 0, 0), rect.inflate(8, 8), 3)
                 screen.blit(pv_scaled, (x, y))
                 # label
-                txt = font.render(f"LIVELLO {i+1}", True, (255, 255, 255))
-                screen.blit(txt, (x + 18, y + 18))
+                txt = font.render(f"LIVELLO {i+1}", True, (40, 40, 40))
+                screen.blit(txt, (x + 14, y + 14))
 
             # Click sulle preview apre il livello corrispondente
             for e in event:
                 if e.type == pygame.MOUSEBUTTONDOWN:
                     for i, r in enumerate(rects):
                         if r.collidepoint(e.pos):
-                            livello_scelto = livelli_possibili[i]
+                            # L'ordine dei livelli rimane invariato rispetto a livelli_possibili
+                            if i == 0:
+                                livello_scelto = livelli_possibili[0]
+                            elif i == 1:
+                                livello_scelto = livelli_possibili[2]
+                            elif i == 2:
+                                livello_scelto = livelli_possibili[1]
                             stato_gioco = "INIZIALIZZA"
             # STATO: Inizializza mappa e oggetti di gioco
         elif stato_gioco == "INIZIALIZZA":
