@@ -16,6 +16,7 @@ class Giocatore:
         self.ultimo_frames = frames_animati  # Memorizza l'ultimo set di frame per rilevare il cambio
 
         # --- EEG ---
+        self.direzione = -1
         self.eeg = MuseEEG()
         if self.eeg.connect():
             print("Muse EEG pronto")
