@@ -65,6 +65,16 @@ def main():
         # Fallback se l'immagine manca
         img_menu = pygame.Surface((LARGHEZZA, ALTEZZA))
         img_menu.fill((20, 20, 20))
+    # Carica schermata selezione livelli e preview mappe
+    try:
+        img_selezione = pygame.image.load(os.path.join(IMG_DIR, "imgMappe", "selezioneLivelli.png")).convert()
+        img_selezione = pygame.transform.scale(img_selezione, (LARGHEZZA, ALTEZZA))
+    except:
+        img_selezione = None
+
+    preview1 = carica_immagine(os.path.join(IMG_DIR, "imgMappe", "mappa1.png"), (80, 80, 80))
+    preview2 = carica_immagine(os.path.join(IMG_DIR, "imgMappe", "mappa2.png"), (80, 80, 80))
+    preview3 = carica_immagine(os.path.join(IMG_DIR, "imgMappe", "mappa3.png"), (80, 80, 80))
     # Prepara lo sfondo del bosco
     
     ZOOM_SFONDO = 1.8  # Fattore di zoom per lo sfondo
@@ -291,36 +301,41 @@ def main():
                             frames_animati = anim_F_forward
                         stato_gioco = "SELEZIONE_LIVELLO"
         elif stato_gioco == "SELEZIONE_LIVELLO":
+            # Disegna sfondo della selezione (immagine se disponibile)
+            if img_selezione:
+                screen.blit(img_selezione, (0, 0))
+            else:
+                screen.fill((30, 30, 60))
 
-            screen.fill((20, 20, 60))
+            # Mostra tre preview centrali cliccabili
+            pv_w, pv_h = 420, 260
+            spacing = 60
+            total_w = pv_w * 3 + spacing * 2
+            start_x = LARGHEZZA // 2 - total_w // 2
+            y = ALTEZZA // 2 - pv_h // 2
 
-            btn_lvl1 = pygame.Rect(700, 350, 400, 80)
-            btn_lvl2 = pygame.Rect(700, 470, 400, 80)
-            btn_lvl3 = pygame.Rect(700, 590, 400, 80)
+            previews = [preview1, preview2, preview3]
+            rects = []
+            for i, pv in enumerate(previews):
+                x = start_x + i * (pv_w + spacing)
+                pv_scaled = pygame.transform.scale(pv, (pv_w, pv_h))
+                rect = pygame.Rect(x, y, pv_w, pv_h)
+                rects.append(rect)
+                # highlight on hover
+                col = (200, 200, 200) if rect.collidepoint(mouse_pos) else (120, 120, 120)
+                pygame.draw.rect(screen, (0, 0, 0), rect.inflate(8, 8))
+                screen.blit(pv_scaled, (x, y))
+                # label
+                txt = font.render(f"LIVELLO {i+1}", True, (255, 255, 255))
+                screen.blit(txt, (x + 10, y + 10))
 
-            pygame.draw.rect(screen, (0,120,200), btn_lvl1, border_radius=15)
-            pygame.draw.rect(screen, (0,160,220), btn_lvl2, border_radius=15)
-            pygame.draw.rect(screen, (0,200,240), btn_lvl3, border_radius=15)
-
-            screen.blit(font.render("LIVELLO 1", True, (255,255,255)), (btn_lvl1.x+90, btn_lvl1.y+15))
-            screen.blit(font.render("LIVELLO 2", True, (255,255,255)), (btn_lvl2.x+90, btn_lvl2.y+15))
-            screen.blit(font.render("LIVELLO 3", True, (255,255,255)), (btn_lvl3.x+90, btn_lvl3.y+15))
-
+            # Click sulle preview apre il livello corrispondente
             for e in event:
                 if e.type == pygame.MOUSEBUTTONDOWN:
-
-                    if btn_lvl1.collidepoint(e.pos):
-                        livello_scelto = livelli_possibili[0] # Livello 1 è mappa1.tmx
-                        stato_gioco = "INIZIALIZZA"
-
-                    if btn_lvl2.collidepoint(e.pos):
-                        livello_scelto = livelli_possibili[1] # Livello 2 è mappa2.tmx
-                        stato_gioco = "INIZIALIZZA"
-                        print("livello 2 selezionato")
-
-                    if btn_lvl3.collidepoint(e.pos):
-                        livello_scelto = livelli_possibili[2] # Livello 3 è mappa3.tmx
-                        stato_gioco = "INIZIALIZZA"
+                    for i, r in enumerate(rects):
+                        if r.collidepoint(e.pos):
+                            livello_scelto = livelli_possibili[i]
+                            stato_gioco = "INIZIALIZZA"
             # STATO: Inizializza mappa e oggetti di gioco
         elif stato_gioco == "INIZIALIZZA":
             if livello_scelto is None:
