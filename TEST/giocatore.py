@@ -39,6 +39,10 @@ class Giocatore:
         self.eeg.update()
         band_powers = self.eeg.get_band_powers()
 
+        # --- Aggiorna buffer GYRO ---
+        self.gyro.update()
+        gyro_mean = self.gyro.get_xyz()
+
         # --- Soglia Beta ---
         soglia_beta = 0.2
         beta = band_powers.get('Beta', 0)
@@ -46,15 +50,16 @@ class Giocatore:
         vel = 2 if beta > soglia_beta else 0
 
         # --- Cambia direzione con i tasti ---
-        if self.gyro.picco_positivo("y"):  # dx
+        print(f"GYRO: {gyro_mean}")
+        soglia = 10
+        if gyro_mean["y"] > soglia:
             self.direzione = 3
-        elif self.gyro.picco_negativo("y"):  # su
+        elif gyro_mean["y"] < -soglia:
             self.direzione = 2
-        elif self.gyro.picco_positivo("z"):  # sx
+        elif gyro_mean["z"] > soglia:
             self.direzione = 1
-        elif self.gyro.picco_negativo("z"):  # giù
+        elif gyro_mean["z"] < -soglia:
             self.direzione = 0
-
 
 
         # --- Calcola dx, dy ---
