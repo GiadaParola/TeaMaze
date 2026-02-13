@@ -1,4 +1,5 @@
 import pygame
+from museEEG import MuseEEG
 
 class Giocatore:
     """Classe che rappresenta il giocatore controllabile"""
@@ -14,19 +15,61 @@ class Giocatore:
         self.sta_muovendo = False  # Flag per sapere se il giocatore si sta muovendo
         self.ultimo_frames = frames_animati  # Memorizza l'ultimo set di frame per rilevare il cambio
 
-    def muovi(self, dx, dy, muri):
-        """Muove il giocatore e gestisce le collisioni con i muri"""
-        self.sta_muovendo = (dx != 0 or dy != 0)  # Aggiorna flag movimento
-        self.rect.x += dx  # Muove in orizzontale
-        for m in muri:  # Controlla collisioni con ogni muro
-            if self.rect.colliderect(m):  # Se collide
-                if dx > 0: self.rect.right = m.left  # Se va a destra, fermati al muro sinistro
-                if dx < 0: self.rect.left = m.right  # Se va a sinistra, fermati al muro destro
-        self.rect.y += dy  # Muove in verticale
-        for m in muri:  # Controlla collisioni con ogni muro
-            if self.rect.colliderect(m):  # Se collide
-                if dy > 0: self.rect.bottom = m.top  # Se va giù, fermati al muro superiore
-                if dy < 0: self.rect.top = m.bottom  # Se va su, fermati al muro inferiore
+        # --- EEG ---
+        self.direzione = -1
+        self.eeg = MuseEEG()
+        if self.eeg.connect():
+            print("Muse EEG pronto")
+        else:
+            print("Muse EEG non trovato, useremo valori simulati")
+
+    def muovi(self, tasti_premuti, muri):
+        """Muove il giocatore controllato da EEG Beta e tastiera"""
+
+        # --- Aggiorna buffer EEG ---
+        self.eeg.update()
+        band_powers = self.eeg.get_band_powers()
+
+        # --- Soglia Beta ---
+        soglia_beta = 0.2
+        beta = band_powers.get('Beta', 0)
+        print(f"Beta: {beta:.3f}")
+        vel = 2 if beta > soglia_beta else 0
+
+        # --- Cambia direzione con i tasti ---
+        if tasti_premuti[pygame.K_RIGHT]:
+            self.direzione = (self.direzione + 1) % 4
+
+        # --- Calcola dx, dy ---
+        dx = dy = 0
+        if self.direzione == 0:  # giù
+            dy = vel
+        elif self.direzione == 1:  # sinistra
+            dx = -vel
+        elif self.direzione == 2:  # su
+            dy = -vel
+        elif self.direzione == 3:  # destra
+            dx = vel
+
+        # Aggiorna stato movimento
+        self.sta_muovendo = (dx != 0 or dy != 0)
+
+        # --- Movimento con collisioni ---
+        self.rect.x += dx
+        for m in muri:
+            if self.rect.colliderect(m):
+                if dx > 0:
+                    self.rect.right = m.left
+                elif dx < 0:
+                    self.rect.left = m.right
+
+        self.rect.y += dy
+        for m in muri:
+            if self.rect.colliderect(m):
+                if dy > 0:
+                    self.rect.bottom = m.top
+                elif dy < 0:
+                    self.rect.top = m.bottom
 
     def aggiorna(self):
         """Aggiorna l'animazione del giocatore"""
