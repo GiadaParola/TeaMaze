@@ -483,13 +483,14 @@ def main():
            
             # Gestione animazioni in base alla direzione
             if anims_corrente:
-                if keys[pygame.K_UP]:
+                soglia = 203
+                if player.gyro_mean["y"] < -soglia: #su
                     player.frames = anims_corrente["up"]
-                elif keys[pygame.K_DOWN]:
+                elif player.gyro_mean["y"] > soglia: #giu
                     player.frames = anims_corrente["down"]
-                elif keys[pygame.K_LEFT]:
+                elif player.gyro_mean["z"] > soglia: #sx
                     player.frames = anims_corrente["left"]
-                elif keys[pygame.K_RIGHT]:
+                elif player.gyro_mean["z"] < -soglia: #dx
                     player.frames = anims_corrente["right"]
                 else:
                     # Se non premi alcun tasto, torna all'animazione standard (forward)
