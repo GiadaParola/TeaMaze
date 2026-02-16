@@ -12,6 +12,7 @@ import nemico
 from utilita import carica_immagine, estrai_frames_gif, crea_superficie_luce
 from costanti import *
 from domande import DOMANDE
+from museGYRO import MuseGYRO
    
 
 
