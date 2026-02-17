@@ -71,10 +71,22 @@ def main():
         # Fallback se l'immagine manca
         img_menu = pygame.Surface((LARGHEZZA, ALTEZZA))
         img_menu.fill((20, 20, 20))
-    # Carica schermata selezione livelli e preview mappe
-    img_selezione = None  # Non usare più immagine di sfondo per la selezione livelli
+    # Carica schermata selezione personaggi
+    try:
+        img_sfondo_selezione_personaggio = pygame.image.load(os.path.join(IMG_DIR, "sfondoSceltaPersonaggio.jpg")).convert()
+        img_sfondo_selezione_personaggio = pygame.transform.scale(img_sfondo_selezione_personaggio, (LARGHEZZA, ALTEZZA))
+    except:
+        img_sfondo_selezione_personaggio = pygame.Surface((LARGHEZZA, ALTEZZA))
+        img_sfondo_selezione_personaggio.fill((240, 240, 240))
+    # Scarica schermata selezione livelli
+    try:
+        img_sfondo_selezione_livello = pygame.image.load(os.path.join(IMG_DIR, "sfondoSceltaLivello.jpg")).convert()
+        img_sfondo_selezione_livello = pygame.transform.scale(img_sfondo_selezione_livello, (LARGHEZZA, ALTEZZA))
+    except:
+        img_sfondo_selezione_livello = pygame.Surface((LARGHEZZA, ALTEZZA))
+        img_sfondo_selezione_livello.fill((240, 240, 240))
 
-
+    # Preview mappe
     preview1 = carica_immagine(os.path.join(IMG_DIR, "imgMappe", "mappa1.png"), (80, 80, 80))
     preview2 = carica_immagine(os.path.join(IMG_DIR, "imgMappe", "mappa2.png"), (80, 80, 80))
     preview3 = carica_immagine(os.path.join(IMG_DIR, "imgMappe", "mappa3.png"), (80, 80, 80))
@@ -120,7 +132,7 @@ def main():
     stato_gioco = "MENU_PRINCIPALE"  # Stato iniziale del gioco
     prev_state = None
     personaggio_scelto = None  # Personaggio non ancora scelto
-    livelli_possibili = [os.path.join(IMG_DIR, 'mappa1.tmx'), os.path.join(IMG_DIR, 'mappa3.tmx'), os.path.join(IMG_DIR, 'mappa2.tmx')]  # Livello non ancora scelto]
+    livelli_possibili = [os.path.join(IMG_DIR, 'mappa1.tmx'), os.path.join(IMG_DIR, 'mappa2.tmx'), os.path.join(IMG_DIR, 'mappa3.tmx')]  # Livello non ancora scelto]
     frames_animati = []  # Lista frames animazione giocatore
     raggio_luce = 200
     raggio_luce_min = 100  # Raggio minimo del campo visivo
@@ -219,10 +231,10 @@ def main():
             screen.blit(txt_gioca, (rect_gioca.centerx - txt_gioca.get_width()//2, rect_gioca.centery - txt_gioca.get_height()//2))
            
             # Pulsante IMPOSTAZIONI (grigio)
-            col_impostazioni = (100, 100, 100) if rect_impostazioni.collidepoint(mouse_pos) else (70, 70, 70)
-            pygame.draw.rect(screen, col_impostazioni, rect_impostazioni, border_radius=15)
-            txt_impostazioni = font.render("IMPOSTAZIONI", True, (255, 255, 255))
-            screen.blit(txt_impostazioni, (rect_impostazioni.centerx - txt_impostazioni.get_width()//2, rect_impostazioni.centery - txt_impostazioni.get_height()//2))
+            #col_impostazioni = (100, 100, 100) if rect_impostazioni.collidepoint(mouse_pos) else (70, 70, 70)
+            #pygame.draw.rect(screen, col_impostazioni, rect_impostazioni, border_radius=15)
+            #txt_impostazioni = font.render("IMPOSTAZIONI", True, (255, 255, 255))
+            #screen.blit(txt_impostazioni, (rect_impostazioni.centerx - txt_impostazioni.get_width()//2, rect_impostazioni.centery - txt_impostazioni.get_height()//2))
            
             # Pulsante USCITA (rosso)
             col_uscita = (180, 0, 0) if rect_uscita.collidepoint(mouse_pos) else (130, 0, 0)
@@ -242,8 +254,8 @@ def main():
         elif stato_gioco == "SELEZIONE_PERSONAGGIO":
 
 
-            # Sfondo bianco per il menu di selezione personaggio
-            screen.fill((255, 255, 255))
+            # Carico l'immagine di sfondo della scelta del personaggio
+            screen.blit(img_sfondo_selezione_personaggio, (0, 0))
 
 
             # Rettangoli per le frecce e per il pulsante "Seleziona"
@@ -269,12 +281,33 @@ def main():
                 pygame.draw.rect(screen, (200, 200, 200), rect_placeholder, border_radius=20)
 
 
-            # Nome del personaggio
+            # ===== NOME PERSONAGGIO CON OMBRA RETTANGOLARE =====
             txt_nome = font.render(personaggio_corrente["nome"], True, (0, 0, 0))
-            screen.blit(
-                txt_nome,
-                (LARGHEZZA // 2 - txt_nome.get_width() // 2, 120)
-            )
+
+            # Centro orizzontale
+            center_x = LARGHEZZA // 2
+            pos_y = 180
+
+            text_rect = txt_nome.get_rect(center=(center_x, pos_y))
+
+            # Rettangolo ombra (più grande del testo)
+            shadow_rect = text_rect.inflate(40, 20)
+            shadow_rect.x += 6
+            shadow_rect.y += 6
+
+            # Ombra semi-trasparente
+            shadow_surface = pygame.Surface((shadow_rect.width, shadow_rect.height), pygame.SRCALPHA)
+            shadow_surface.fill((0, 0, 0, 120))
+            screen.blit(shadow_surface, shadow_rect.topleft)
+
+            # Rettangolo principale bianco
+            bg_rect = text_rect.inflate(40, 20)
+            pygame.draw.rect(screen, (255, 255, 255), bg_rect, border_radius=12)
+            pygame.draw.rect(screen, (0, 0, 0), bg_rect, 2)
+
+            # Disegna testo sopra tutto
+            screen.blit(txt_nome, text_rect)
+
 
 
             # Disegno dei pulsanti freccia
@@ -318,8 +351,8 @@ def main():
                             frames_animati = anim_F_forward
                         stato_gioco = "SELEZIONE_LIVELLO"
         elif stato_gioco == "SELEZIONE_LIVELLO":
-            # Sfondo bianco
-            screen.fill((255, 255, 255))
+            # Carico l'immagine di sfondo della scelta del livello
+            screen.blit(img_sfondo_selezione_livello, (0, 0))
 
 
             # Preview più piccole e inverti 2 e 3
@@ -344,9 +377,37 @@ def main():
                 else:
                     pygame.draw.rect(screen, (0, 0, 0), rect.inflate(8, 8), 3)
                 screen.blit(pv_scaled, (x, y))
-                # label
+                # ===== LABEL CON OMBRA RETTANGOLARE =====
                 txt = font.render(f"LIVELLO {i+1}", True, (40, 40, 40))
-                screen.blit(txt, (x + 14, y + 14))
+
+                # Centro del testo rispetto alla preview
+                text_center_x = x + pv_w // 2
+                text_y = y - 50  # posizione sopra l'immagine
+
+                # Rettangolo del testo
+                text_rect = txt.get_rect(center=(text_center_x, text_y))
+
+                # Crea rettangolo ombra (leggermente più grande)
+                shadow_rect = text_rect.inflate(30, 15)
+
+                # Spostamento ombra per effetto realistico
+                shadow_rect.x += 5
+                shadow_rect.y += 5
+
+                # Disegna ombra semi-trasparente
+                shadow_surface = pygame.Surface((shadow_rect.width, shadow_rect.height), pygame.SRCALPHA)
+                shadow_surface.fill((0, 0, 0, 120))  # nero con alpha
+                screen.blit(shadow_surface, shadow_rect.topleft)
+
+                # Disegna rettangolo principale bianco
+                bg_rect = text_rect.inflate(30, 15)
+                pygame.draw.rect(screen, (255, 255, 255), bg_rect, border_radius=10)
+                pygame.draw.rect(screen, (0, 0, 0), bg_rect, 2)
+
+                # Disegna il testo sopra tutto
+                screen.blit(txt, text_rect)
+
+
 
 
             # Click sulle preview apre il livello corrispondente
@@ -452,7 +513,7 @@ def main():
 
             if(livello_scelto==livelli_possibili[0]):
                 # Livello 1: solo Minotauro
-                pos_iniziale_giocatore = (90, 70)
+                pos_iniziale_giocatore = (90, 70) #90, 70
                 player = giocatore.Giocatore(90, 70, img_m_statica, frames_animati)
                 nemico1 = nemico.Nemico(400, 400, img_minotauro, grid_info)
                 nemico1.start_pos = (400, 400)
@@ -460,16 +521,16 @@ def main():
                 nemico2 = None
             elif(livello_scelto==livelli_possibili[1]):
                 # Livello 2: solo Drago
-                pos_iniziale_giocatore = (440, 580)
-                player = giocatore.Giocatore(440, 580, img_m_statica, frames_animati)
+                pos_iniziale_giocatore = (60, 390) #60, 390
+                player = giocatore.Giocatore(60, 390, img_m_statica, frames_animati)
                 nemico1 = nemico.Nemico(600, 400, img_drago, grid_info)
                 nemico1.start_pos = (600, 400)
                 nemico1.tipo = "DRAGO"
                 nemico2 = None
             else:
                 # Livello 3: solo Scheletro
-                pos_iniziale_giocatore = (60, 390)
-                player = giocatore.Giocatore(60, 390, img_m_statica, frames_animati)
+                pos_iniziale_giocatore = (440, 580) #440, 580
+                player = giocatore.Giocatore(440, 580, img_m_statica, frames_animati)
                 nemico1 = nemico.Nemico(500, 300, img_scheletro, grid_info)
                 nemico1.start_pos = (500, 300)
                 nemico1.tipo = "SCHELETRO"
@@ -484,13 +545,13 @@ def main():
             # Gestione animazioni in base alla direzione
             if anims_corrente:
                 soglia = 203
-                if player.gyro_mean["y"] < -soglia: #su
+                if keys[pygame.K_UP]: #su
                     player.frames = anims_corrente["up"]
-                elif player.gyro_mean["y"] > soglia: #giu
+                elif keys[pygame.K_DOWN]: #giu
                     player.frames = anims_corrente["down"]
-                elif player.gyro_mean["z"] > soglia: #sx
+                elif keys[pygame.K_LEFT]: #sx
                     player.frames = anims_corrente["left"]
-                elif player.gyro_mean["z"] < -soglia: #dx
+                elif keys[pygame.K_RIGHT]: #dx
                     player.frames = anims_corrente["right"]
                 else:
                     # Se non premi alcun tasto, torna all'animazione standard (forward)
