@@ -52,13 +52,13 @@ class Giocatore:
         # --- Cambia direzione con i tasti ---
         print(f"GYRO: {gyro_mean}")
         soglia = 190
-        if gyro_mean["y"] > -soglia: #giu
+        if gyro_mean["y"] > soglia: #giu
             self.direzione = 0
-        elif gyro_mean["y"] < soglia: #su
+        elif gyro_mean["y"] < -soglia: #su
             self.direzione = 2
-        elif gyro_mean["z"] > -soglia: #sx
+        elif gyro_mean["z"] > soglia: #sx
             self.direzione = 1
-        elif gyro_mean["z"] < soglia: #dx
+        elif gyro_mean["z"] < -soglia: #dx
             self.direzione = 3
 
 
