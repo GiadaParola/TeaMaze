@@ -24,6 +24,6 @@ DOMANDE = [
     {
         "testo": "Quando è terminata la Seconda Guerra Mondiale?",
         "opzioni": ["1945", "1948", "1999", "100 a.c"],
-        "risposta_corretta": 2
+        "risposta_corretta": 0
     }
 ]
