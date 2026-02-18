@@ -61,7 +61,7 @@ def main():
     # Carica le immagini per il gioco
     img_m_statica = carica_immagine(os.path.join(IMG_DIR, "personaggioM.png"), (0, 0, 255))  # Immagine giocatore statica (fallback blu)
     img_minotauro = carica_immagine(os.path.join(IMG_DIR, "minotauro.png"), (200, 0, 0))  # Immagine nemico (fallback rosso)
-    img_scheletro = carica_immagine(os.path.join(IMG_DIR, "ghost.png"), (400, 0, 0))
+    img_ghost = carica_immagine(os.path.join(IMG_DIR, "ghost.gif"), (400, 0, 0))
     img_drago = carica_immagine(os.path.join(IMG_DIR, "drago.png"), (200, 100, 0))  # Immagine drago
     img_bosco_base = carica_immagine(os.path.join(IMG_DIR, "bosco.png"), (30, 30, 30))  # Immagine sfondo bosco (fallback grigio)
     try:
@@ -494,10 +494,10 @@ def main():
                 nemico1.tipo = "DRAGO"
                 nemico2 = None
             else:
-                # Livello 3: solo Scheletro
+                # Livello 3: solo Ghost
                 pos_iniziale_giocatore = (60, 390)
                 player = giocatore.Giocatore(60, 390, img_m_statica, frames_animati)
-                nemico1 = nemico.Nemico(500, 300, img_scheletro, grid_info)
+                nemico1 = nemico.Nemico(500, 300, img_ghost, grid_info)
                 nemico1.start_pos = (500, 300)
                 nemico1.tipo = "GHOST"
                 nemico2 = None
