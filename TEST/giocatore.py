@@ -18,6 +18,7 @@ class Giocatore:
         self.ultimo_frames = frames_animati  # Memorizza l'ultimo set di frame per rilevare il cambio
 
         # --- EEG ---
+        self.soglia_beta = 0.03
         self.direzione = 0
         self.eeg = MuseEEG()
         if self.eeg.connect():        
@@ -46,10 +47,9 @@ class Giocatore:
         gyro_mean = self.gyro.get_xyz()
 
         # --- Soglia Beta ---
-        soglia_beta = 0.1
         beta = band_powers.get('Beta', 0)
         print(f"Beta: {beta:.3f}")
-        vel = 2 if beta > soglia_beta else 0
+        vel = 2 if beta > self.soglia_beta else 0
 
         # --- Cambia direzione con i tasti ---
         print(f"GYRO: {gyro_mean}")

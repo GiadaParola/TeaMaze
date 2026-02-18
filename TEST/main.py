@@ -587,18 +587,24 @@ def main():
                     player.frames = anims_corrente["left"]
                 elif gyro["z"] < -player.soglia:
                     player.frames = anims_corrente["right"]
+
+            player.eeg.update()
+            eeg = player.eeg.get_band_powers()
+            bata_value = eeg.get('Beta', 0)
+
+            raggio_luce = raggio_luce_min + beta_value * (raggio_luce_max - raggio_luce_min)
            
             # Gestione espansione del campo visivo con tasto E
-            if keys[pygame.K_e]:
-                raggio_luce = min(raggio_luce + incremento_raggio, raggio_luce_max)
+            #if keys[pygame.K_e]:
+            #    raggio_luce = min(raggio_luce + incremento_raggio, raggio_luce_max)
                 # Rigenera la maschera di luce quando il raggio cambia
-                luce_mask = crea_superficie_luce(raggio_luce)
+            #    luce_mask = crea_superficie_luce(raggio_luce)
            
             # Gestione rimpicciolimento del campo visivo con tasto R
-            if keys[pygame.K_r]:
-                raggio_luce = max(raggio_luce - incremento_raggio, raggio_luce_min)
+            #if keys[pygame.K_r]:
+            #    raggio_luce = max(raggio_luce - incremento_raggio, raggio_luce_min)
                 # Rigenera la maschera di luce quando il raggio cambia
-                luce_mask = crea_superficie_luce(raggio_luce)
+            #    luce_mask = crea_superficie_luce(raggio_luce)
            
             # Calcola movimento in base a come muovi la testa
             player.muovi(muri)
@@ -680,8 +686,8 @@ def main():
 
             # --- INTERFACCIA (UI) ---
             # Mostriamo il valore del raggio in un angolo
-            txt_raggio = font.render(f"Raggio Luce: {raggio_luce}", True, (255, 255, 255))
-            v_screen.blit(txt_raggio, (10, 10))
+            #txt_raggio = font.render(f"Raggio Luce: {raggio_luce}", True, (255, 255, 255))
+            #v_screen.blit(txt_raggio, (10, 10))
             oscurita = pygame.Surface((V_LARGHEZZA, V_ALTEZZA), pygame.SRCALPHA)
             oscurita.fill((0, 0, 0, 250)) # 250 è quasi nero totale
 
