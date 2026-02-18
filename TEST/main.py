@@ -5,13 +5,15 @@ import pytmx
 import random
 import os
 
+
 # Importa moduli locali
 import giocatore    
 import nemico
 from utilita import carica_immagine, estrai_frames_gif, crea_superficie_luce
 from costanti import *
 from domande import DOMANDE
-    
+   
+
 
 def main():
     """Funzione principale del gioco"""
@@ -22,6 +24,7 @@ def main():
     except Exception:
         pass
 
+
     # Mappa delle musica: assegna i file presenti in TEST/sounds
     SOUNDS_DIR = os.path.join(BASE_DIR, "sounds")
     MUSIC_FILES = {
@@ -31,7 +34,9 @@ def main():
         "LIVELLO3": os.path.join(SOUNDS_DIR, "11 Chronicles of the Archive.mp3"),
     }
 
+
     current_music = None
+
 
     def play_music(path, volume=0.6):
         nonlocal current_music
@@ -45,16 +50,17 @@ def main():
         except Exception:
             # Se il file non esiste o mixer non inizializzato, ignoriamo
             current_music = None
-    
+   
     screen = pygame.display.set_mode((LARGHEZZA, ALTEZZA))  # Crea finestra principale 1920x1080
     v_screen = pygame.Surface((V_LARGHEZZA, V_ALTEZZA))  # Superficie virtuale per il rendering (960x540)
     clock = pygame.time.Clock()  # Orologio per controllare FPS
     font = pygame.font.SysFont("Arial", 50, bold=True)  # Font per il testo
 
+
     # Carica le immagini per il gioco
     img_m_statica = carica_immagine(os.path.join(IMG_DIR, "personaggioM.png"), (0, 0, 255))  # Immagine giocatore statica (fallback blu)
     img_minotauro = carica_immagine(os.path.join(IMG_DIR, "minotauro.png"), (200, 0, 0))  # Immagine nemico (fallback rosso)
-    img_scheletro = carica_immagine(os.path.join(IMG_DIR, "scheletroOro.png"), (400, 0, 0)) 
+    img_scheletro = carica_immagine(os.path.join(IMG_DIR, "scheletroOro.png"), (400, 0, 0))
     img_drago = carica_immagine(os.path.join(IMG_DIR, "drago.png"), (200, 100, 0))  # Immagine drago
     img_bosco_base = carica_immagine(os.path.join(IMG_DIR, "bosco.png"), (30, 30, 30))  # Immagine sfondo bosco (fallback grigio)
     try:
@@ -68,11 +74,12 @@ def main():
     # Carica schermata selezione livelli e preview mappe
     img_selezione = None  # Non usare più immagine di sfondo per la selezione livelli
 
+
     preview1 = carica_immagine(os.path.join(IMG_DIR, "imgMappe", "mappa1.png"), (80, 80, 80))
     preview2 = carica_immagine(os.path.join(IMG_DIR, "imgMappe", "mappa2.png"), (80, 80, 80))
     preview3 = carica_immagine(os.path.join(IMG_DIR, "imgMappe", "mappa3.png"), (80, 80, 80))
     # Prepara lo sfondo del bosco
-    
+   
     ZOOM_SFONDO = 1.8  # Fattore di zoom per lo sfondo
     nw, nh = int(V_LARGHEZZA * ZOOM_SFONDO), int(V_ALTEZZA * ZOOM_SFONDO)  # Nuove dimensioni zoom
     img_bosco = pygame.transform.scale(img_bosco_base, (nw, nh))  # Ridimensiona l'immagine
@@ -82,10 +89,12 @@ def main():
     anim_M_down = estrai_frames_gif(os.path.join(IMG_DIR, "giuAnimatoM.gif"), 28)
     anim_M_left = [pygame.transform.flip(f, True, False) for f in anim_M_forward] if anim_M_forward else []
 
+
     anim_F_forward = estrai_frames_gif(os.path.join(IMG_DIR, "personaggioFAnimato.gif"), 26)
     anim_F_up = estrai_frames_gif(os.path.join(IMG_DIR, "suAnimatoF.gif"), 20)
     anim_F_down = estrai_frames_gif(os.path.join(IMG_DIR, "giuAnimatoF.gif"), 20)
     anim_F_left = [pygame.transform.flip(f, True, False) for f in anim_F_forward] if anim_F_forward else []
+
 
     # Dizionari utili per selezione animazioni runtime
     anims_M = {"forward": anim_M_forward, "up": anim_M_up, "down": anim_M_down, "left": anim_M_left, "right": anim_M_forward}
@@ -99,11 +108,13 @@ def main():
     centro_x = LARGHEZZA // 2 - larghezza_btn // 2
     inizio_y = ALTEZZA // 2 + 50 # 50 pixel sotto la metà
 
+
     rect_gioca = pygame.Rect(centro_x, inizio_y, larghezza_btn, altezza_btn)
     rect_impostazioni = pygame.Rect(centro_x, inizio_y + 100, larghezza_btn, altezza_btn)
     rect_uscita = pygame.Rect(centro_x, inizio_y + 200, larghezza_btn, altezza_btn)
     off_x = (nw - V_LARGHEZZA) // 2  # Offset X per centrare lo sfondo
     off_y = (nh - V_ALTEZZA) // 2  # Offset Y per centrare lo sfondo
+
 
     # Inizializza variabili di stato
     stato_gioco = "MENU_PRINCIPALE"  # Stato iniziale del gioco
@@ -116,7 +127,7 @@ def main():
     raggio_luce_max = 400  # Raggio massimo del campo visivo
     incremento_raggio = 3  # Incremento lineare del raggio per frame quando si preme E
     luce_mask = crea_superficie_luce(raggio_luce)
-    
+   
     # Sistema di domande e risposte (importato da domande.py)
     domanda_attiva = None  # Domanda corrente
     nemico_che_ha_colpito = None  # Quale nemico ha colpito (1 o 2)
@@ -124,7 +135,7 @@ def main():
     mostra_feedback = False  # Se mostrare il feedback (verde/rosso)
     feedback_colore = False  # True se risposta giusta, False se sbagliata
     timer_feedback = 0  # Counter per il feedback (90 = 1.5 secondi a 60 FPS)
-    
+   
     # Variabili per i nemici e il giocatore (saranno inizializzate nello stato INIZIALIZZA)
     player = None
     nemico1 = None
@@ -144,7 +155,7 @@ def main():
     enemy_anim_owner = None
     enemy_anim_index = 0
     enemy_anim_frame_hold = 5
-    
+   
     # Personaggi disponibili per il menu di selezione
     personaggi = [
         {
@@ -181,13 +192,14 @@ def main():
                     pass
             # aggiorna lo stato precedente
             prev_state = stato_gioco
-        
+       
         for e in event:
-            if e.type == pygame.QUIT: 
+            if e.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-            if e.type == pygame.KEYDOWN and e.key == pygame.K_ESCAPE: 
+            if e.type == pygame.KEYDOWN and e.key == pygame.K_ESCAPE:
                 stato_gioco = "MENU_PRINCIPALE"
+
 
         # STATO: Menu principale
         if stato_gioco == "MENU_PRINCIPALE":
@@ -197,49 +209,53 @@ def main():
             rect_gioca = pygame.Rect(cx, ALTEZZA // 2 + 50, larghezza_btn, altezza_btn)
             rect_impostazioni = pygame.Rect(cx, ALTEZZA // 2 + 160, larghezza_btn, altezza_btn)
             rect_uscita = pygame.Rect(cx, ALTEZZA // 2 + 270, larghezza_btn, altezza_btn)
-            
+           
             screen.blit(img_menu, (0, 0))
-            
+           
             # Pulsante GIOCA (verde)
             col_gioca = (0, 180, 0) if rect_gioca.collidepoint(mouse_pos) else (0, 130, 0)
             pygame.draw.rect(screen, col_gioca, rect_gioca, border_radius=15)
             txt_gioca = font.render("GIOCA", True, (255, 255, 255))
             screen.blit(txt_gioca, (rect_gioca.centerx - txt_gioca.get_width()//2, rect_gioca.centery - txt_gioca.get_height()//2))
-            
+           
             # Pulsante IMPOSTAZIONI (grigio)
             col_impostazioni = (100, 100, 100) if rect_impostazioni.collidepoint(mouse_pos) else (70, 70, 70)
             pygame.draw.rect(screen, col_impostazioni, rect_impostazioni, border_radius=15)
             txt_impostazioni = font.render("IMPOSTAZIONI", True, (255, 255, 255))
             screen.blit(txt_impostazioni, (rect_impostazioni.centerx - txt_impostazioni.get_width()//2, rect_impostazioni.centery - txt_impostazioni.get_height()//2))
-            
+           
             # Pulsante USCITA (rosso)
             col_uscita = (180, 0, 0) if rect_uscita.collidepoint(mouse_pos) else (130, 0, 0)
             pygame.draw.rect(screen, col_uscita, rect_uscita, border_radius=15)
             txt_uscita = font.render("USCITA", True, (255, 255, 255))
             screen.blit(txt_uscita, (rect_uscita.centerx - txt_uscita.get_width()//2, rect_uscita.centery - txt_uscita.get_height()//2))
-            
+           
             # Gestione click
             for e in event:
                 if e.type == pygame.MOUSEBUTTONDOWN:
-                    if rect_gioca.collidepoint(e.pos): 
+                    if rect_gioca.collidepoint(e.pos):
                         stato_gioco = "SELEZIONE_PERSONAGGIO"
-                    if rect_uscita.collidepoint(e.pos): 
+                    if rect_uscita.collidepoint(e.pos):
                         pygame.quit()
                         sys.exit()
-                        
+                       
         elif stato_gioco == "SELEZIONE_PERSONAGGIO":
+
 
             # Sfondo bianco per il menu di selezione personaggio
             screen.fill((255, 255, 255))
+
 
             # Rettangoli per le frecce e per il pulsante "Seleziona"
             btn_sx = pygame.Rect(LARGHEZZA // 2 - 250, ALTEZZA // 2 - 60, 80, 80)
             btn_dx = pygame.Rect(LARGHEZZA // 2 + 170, ALTEZZA // 2 - 60, 80, 80)
             btn_select = pygame.Rect(LARGHEZZA // 2 - 150, ALTEZZA // 2 + 200, 300, 80)
 
+
             # Disegna il personaggio attualmente selezionato (GIF)
             personaggio_corrente = personaggi[indice_personaggio]
             frames_correnti = personaggio_corrente["frames"]
+
 
             if frames_correnti:
                 # Anima la GIF: ogni 5 tick cambia frame
@@ -252,6 +268,7 @@ def main():
                 rect_placeholder = pygame.Rect(LARGHEZZA // 2 - 100, ALTEZZA // 2 - 140, 200, 200)
                 pygame.draw.rect(screen, (200, 200, 200), rect_placeholder, border_radius=20)
 
+
             # Nome del personaggio
             txt_nome = font.render(personaggio_corrente["nome"], True, (0, 0, 0))
             screen.blit(
@@ -259,14 +276,17 @@ def main():
                 (LARGHEZZA // 2 - txt_nome.get_width() // 2, 120)
             )
 
+
             # Disegno dei pulsanti freccia
             pygame.draw.rect(screen, (220, 220, 220), btn_sx, border_radius=15)
             pygame.draw.rect(screen, (220, 220, 220), btn_dx, border_radius=15)
+
 
             txt_sx = font.render("<", True, (0, 0, 0))
             txt_dx = font.render(">", True, (0, 0, 0))
             screen.blit(txt_sx, (btn_sx.centerx - txt_sx.get_width() // 2, btn_sx.centery - txt_sx.get_height() // 2))
             screen.blit(txt_dx, (btn_dx.centerx - txt_dx.get_width() // 2, btn_dx.centery - txt_dx.get_height() // 2))
+
 
             # Pulsante di selezione
             pygame.draw.rect(screen, (0, 150, 0), btn_select, border_radius=20)
@@ -275,6 +295,7 @@ def main():
                 txt_sel,
                 (btn_select.centerx - txt_sel.get_width() // 2, btn_select.centery - txt_sel.get_height() // 2)
             )
+
 
             # Gestione degli input del mouse nel menu personaggio
             for e in event:
@@ -300,12 +321,14 @@ def main():
             # Sfondo bianco
             screen.fill((255, 255, 255))
 
+
             # Preview più piccole e inverti 2 e 3
             pv_w, pv_h = 340, 210
             spacing = 70
             total_w = pv_w * 3 + spacing * 2
             start_x = LARGHEZZA // 2 - total_w // 2
             y = ALTEZZA // 2 - pv_h // 2 + 40
+
 
             # Inverti preview2 e preview3
             previews = [preview1, preview3, preview2]
@@ -324,6 +347,7 @@ def main():
                 # label
                 txt = font.render(f"LIVELLO {i+1}", True, (40, 40, 40))
                 screen.blit(txt, (x + 14, y + 14))
+
 
             # Click sulle preview apre il livello corrispondente
             for e in event:
@@ -348,14 +372,16 @@ def main():
             except:
                 print(f"Errore: {livello_scelto} non trovata!")  # Se non trova la mappa
                 pygame.quit(); sys.exit()  # Esci dal gioco
-                
+               
             muri = []  # Lista che conterrà i muri (rettangoli)
             rect_uscita = None  # Area di uscita del labirinto (oggetto)
             fine_tiles = []  # Tile che terminano il livello
 
+
             # Estrae informazioni da tutti i layer della mappa
             for layer in tmx_data.visible_layers:
                 layer_class = getattr(layer, "class_", None)
+
 
                 # Muri: tutti i layer di tile con nome "sfondo" o classe "sfondo"
                 if isinstance(layer, pytmx.TiledTileLayer) and (
@@ -365,6 +391,7 @@ def main():
                         if tmx_data.get_tile_image_by_gid(gid):  # Se tile è visibile
                             rect_tile = pygame.Rect(x*32, y*32, 32, 32)
                             muri.append(rect_tile)  # Aggiungi rettangolo muro
+
 
                 # Tile con classe "Fine" fanno finire il livello
                 if isinstance(layer, pytmx.TiledTileLayer):
@@ -376,6 +403,7 @@ def main():
                         if tile_class == "Fine":
                             fine_tiles.append(pygame.Rect(x*32, y*32, 32, 32))
 
+
             # Oggetti di uscita "Fine": leggili anche se il layer è invisibile
             for layer in tmx_data.layers:
                 if isinstance(layer, pytmx.TiledObjectGroup) and layer.name == "Fine":
@@ -383,12 +411,14 @@ def main():
                         if getattr(obj, "name", None) == "Fine":
                             rect_uscita = pygame.Rect(obj.x, obj.y, obj.width, obj.height)
 
+
             # Crea istanze giocatore e nemico
             # Costruisci mappa di tile percorribili: tile non coincidono con muri o con tile "Fine"
             tile_w = getattr(tmx_data, 'tilewidth', 32)
             tile_h = getattr(tmx_data, 'tileheight', 32)
             map_w = tmx_data.width
             map_h = tmx_data.height
+
 
             passable_tiles = set()
             for ty in range(map_h):
@@ -410,6 +440,7 @@ def main():
                         continue
                     passable_tiles.add((tx, ty))
 
+
             grid_info = {
                 'passable': passable_tiles,
                 'tile_w': tile_w,
@@ -417,6 +448,7 @@ def main():
                 'map_w': map_w,
                 'map_h': map_h
             }
+
 
             if(livello_scelto==livelli_possibili[0]):
                 # Livello 1: solo Minotauro
@@ -444,10 +476,11 @@ def main():
                 nemico2 = None
             stato_gioco = "IN_GIOCO"  # Inizia il gioco
 
+
         # STATO: Gioco in corso
         elif stato_gioco == "IN_GIOCO":
             keys = pygame.key.get_pressed()  # Prendi lo stato di tutte le tastiere
-            
+           
             # Gestione animazioni in base alla direzione
             if anims_corrente:
                 if keys[pygame.K_UP]:
@@ -461,25 +494,26 @@ def main():
                 else:
                     # Se non premi alcun tasto, torna all'animazione standard (forward)
                     player.frames = anims_corrente["forward"]
-            
+           
             # Gestione espansione del campo visivo con tasto E
             if keys[pygame.K_e]:
                 raggio_luce = min(raggio_luce + incremento_raggio, raggio_luce_max)
                 # Rigenera la maschera di luce quando il raggio cambia
                 luce_mask = crea_superficie_luce(raggio_luce)
-            
+           
             # Gestione rimpicciolimento del campo visivo con tasto R
             if keys[pygame.K_r]:
                 raggio_luce = max(raggio_luce - incremento_raggio, raggio_luce_min)
                 # Rigenera la maschera di luce quando il raggio cambia
                 luce_mask = crea_superficie_luce(raggio_luce)
-            
+           
             # Calcola movimento in base a come muovi la testa
             player.muovi(muri)
             if nemico1:
                 nemico1.muovi_auto(muri)
             if nemico2:
                 nemico2.muovi_auto(muri)
+
 
             # Controlla vittoria: se giocatore raggiunge l'uscita (oggetto) o una tile con classe "Fine"
             if rect_uscita and player.rect.colliderect(rect_uscita):
@@ -503,18 +537,19 @@ def main():
                 mostra_feedback = False
                 stato_gioco = "DOMANDA_RISPOSTA"
 
+
             # Calcola posizione della camera centrata sul giocatore
             cam_x = player.rect.centerx - V_LARGHEZZA//2  # Camera X
             cam_y = player.rect.centery - V_ALTEZZA//2  # Camera Y
             v_screen.blit(img_bosco, (-off_x, -off_y))  # Disegna sfondo bosco
-            
+           
             # Disegna tutti i tile della mappa
             for layer in tmx_data.visible_layers:
                 if isinstance(layer, pytmx.TiledTileLayer):  # Se è un layer di tile
                     for x, y, gid in layer:  # Per ogni tile
                         tile = tmx_data.get_tile_image_by_gid(gid)  # Ottieni immagine tile
                         if tile: v_screen.blit(tile, (x*32-cam_x, y*32-cam_y))  # Disegna tile adattato a camera
-            
+           
             # Disegna nemico e giocatore
             if nemico1:
                 nemico1.draw(v_screen, (cam_x, cam_y))  # Disegna nemico1
@@ -525,8 +560,8 @@ def main():
             screen.blit(pygame.transform.scale(v_screen, (LARGHEZZA, ALTEZZA)), (0,0))
             variazione = random.randint(-5, 5) # Piccola variazione casuale
             raggio_dinamico = raggio_luce + variazione
-            
-            # Se vuoi bordi ancora più morbidi, rigenera la maschera ogni tanto 
+           
+            # Se vuoi bordi ancora più morbidi, rigenera la maschera ogni tanto
             # o scalamela leggermente:
             luce_scalata = pygame.transform.scale(luce_mask, (raggio_dinamico*2, raggio_dinamico*2))
             # --- LUCE DINAMICA ---
@@ -534,17 +569,21 @@ def main():
             superficie_oscurita = pygame.Surface((V_LARGHEZZA, V_ALTEZZA), pygame.SRCALPHA)
             superficie_oscurita.fill((0, 0, 0, 235)) # Il 235 indica quanto è buio (0-255)
 
+
             # 2. Calcoliamo la posizione del giocatore sullo schermo virtuale
             # (Non la posizione nel mondo, ma dove appare fisicamente sul monitor)
             pos_schermo_x = player.rect.centerx - cam_x
             pos_schermo_y = player.rect.centery - cam_y
 
+
             # 3. "Buchiamo" l'oscurità con un cerchio trasparente
             # Usiamo blend_rgba_min per sottrarre l'oscurità dove c'è il cerchio
             pygame.draw.circle(superficie_oscurita, (0, 0, 0, 0), (pos_schermo_x, pos_schermo_y), raggio_luce)
 
+
             # 4. Applichiamo la maschera sulla virtual_screen
             v_screen.blit(superficie_oscurita, (0, 0))
+
 
             # --- INTERFACCIA (UI) ---
             # Mostriamo il valore del raggio in un angolo
@@ -553,31 +592,35 @@ def main():
             oscurita = pygame.Surface((V_LARGHEZZA, V_ALTEZZA), pygame.SRCALPHA)
             oscurita.fill((0, 0, 0, 250)) # 250 è quasi nero totale
 
+
             # 2. Calcoliamo dove si trova il giocatore sullo schermo
             pos_x = player.rect.centerx - cam_x - raggio_luce
             pos_y = player.rect.centery - cam_y - raggio_luce
+
 
             # 3. Usiamo il metodo BLEND_RGBA_MIN per "sottrarre" l'oscurità
             # Questo crea l'effetto dissolvenza tra luce e buio
             oscurita.blit(luce_mask, (pos_x, pos_y), special_flags=pygame.BLEND_RGBA_MIN)
 
+
             # 4. Applichiamo l'oscurità finale sullo schermo virtuale
             v_screen.blit(oscurita, (0, 0))
 
+
             # Disegno finale
             screen.blit(pygame.transform.scale(v_screen, (LARGHEZZA, ALTEZZA)), (0, 0))
-        
+       
         # STATO: Domanda a risposta multipla
         elif stato_gioco == "DOMANDA_RISPOSTA":
             # Disegna il gioco in pausa sullo sfondo
             screen.blit(pygame.transform.scale(v_screen, (LARGHEZZA, ALTEZZA)), (0, 0))
-            
+           
             # Overlay semi-trasparente per evidenziare la finestra
             overlay = pygame.Surface((LARGHEZZA, ALTEZZA))
             overlay.set_alpha(80)  # Più trasparente per vedere la mappa dietro
             overlay.fill((0, 0, 0))
             screen.blit(overlay, (0, 0))
-            
+           
             # Finestra bianca con la domanda (più piccola)
             larghezza_finestra = 650
             altezza_finestra = 400
@@ -585,26 +628,26 @@ def main():
             y_finestra = ALTEZZA // 2 - altezza_finestra // 2
             pygame.draw.rect(screen, (255, 255, 255), (x_finestra, y_finestra, larghezza_finestra, altezza_finestra))
             pygame.draw.rect(screen, (0, 0, 0), (x_finestra, y_finestra, larghezza_finestra, altezza_finestra), 3)
-            
+           
             # Testo della domanda
             font_domanda = pygame.font.SysFont("Arial", 24, bold=True)
             txt_domanda = font_domanda.render(domanda_attiva["testo"], True, (0, 0, 0))
             screen.blit(txt_domanda, (x_finestra + 30, y_finestra + 20))
-            
+           
             # Opzioni a risposta multipla
             font_opzioni = pygame.font.SysFont("Arial", 18)
             lettere = ['A', 'B', 'C', 'D']
             rect_opzioni = []
-            
+           
             for i, opzione in enumerate(domanda_attiva["opzioni"]):
                 y_opzione = y_finestra + 100 + i * 60
                 x_opzione = x_finestra + 30
                 larghezza_opzione = larghezza_finestra - 60
                 altezza_opzione = 50
-                
+               
                 rect_opt = pygame.Rect(x_opzione, y_opzione, larghezza_opzione, altezza_opzione)
                 rect_opzioni.append(rect_opt)
-                
+               
                 # Colore dell'opzione
                 if mostra_feedback:
                     if i == domanda_attiva["risposta_corretta"]:
@@ -615,16 +658,16 @@ def main():
                         colore = (200, 200, 200)
                 else:
                     colore = (200, 200, 200)
-                
+               
                 pygame.draw.rect(screen, colore, rect_opt)
                 pygame.draw.rect(screen, (0, 0, 0), rect_opt, 2)
-                
+               
                 # Testo opzione
                 txt_lettera = font_opzioni.render(f"{lettere[i]})", True, (0, 0, 0))
                 txt_opzione = font_opzioni.render(opzione, True, (0, 0, 0))
                 screen.blit(txt_lettera, (x_opzione + 15, y_opzione + 10))
                 screen.blit(txt_opzione, (x_opzione + 60, y_opzione + 10))
-            
+           
             # Gestione click su opzioni
             for e in event:
                 if e.type == pygame.MOUSEBUTTONDOWN and not mostra_feedback:
@@ -634,11 +677,11 @@ def main():
                             feedback_colore = (i == domanda_attiva["risposta_corretta"])
                             mostra_feedback = True
                             timer_feedback = 90  # 1.5 secondi a 60 FPS
-            
+           
             # Se il feedback è mostrato, decrementa il timer
             if mostra_feedback:
                 timer_feedback -= 1
-                
+               
                 if timer_feedback == 89:  # Immediatamente dopo la selezione
                     if feedback_colore:  # Risposta giusta
                         # Rimuovi il nemico che ha colpito (spostalo fuori dalla mappa)
@@ -669,12 +712,13 @@ def main():
                             else:
                                 enemy_anim_frames = []
                             enemy_anim_owner = 2
-                
+               
                 # Torna al gioco dopo il timer
                 if timer_feedback <= 0:
                     stato_gioco = "IN_GIOCO"
                     mostra_feedback = False
                     timer_feedback = 0
+
 
             # --- Animazione nemico da mostrare durante il feedback (es. sbuffo/drago_fuoco) ---
             if enemy_anim_timer > 0:
@@ -699,6 +743,7 @@ def main():
                     except Exception:
                         pass
 
+
                 # quando finisce il timer, riporta il nemico al punto di partenza
                 if enemy_anim_timer <= 0:
                     if enemy_anim_owner == 1 and nemico1 and hasattr(nemico1, 'start_pos'):
@@ -713,7 +758,7 @@ def main():
                     enemy_anim_owner = None
                     enemy_anim_frames = []
                     enemy_anim_index = 0
-        
+       
         # STATO: Vittoria
         elif stato_gioco == "VITTORIA":
             screen.fill((0, 80, 0))  # Sfondo verde scuro
@@ -722,9 +767,11 @@ def main():
             for e in event:  # Controlla input
                 if e.type == pygame.KEYDOWN and e.key == pygame.K_SPACE: stato_gioco = "MENU_PRINCIPALE"  # SPAZIO = ritorna al menu
 
+
         # Aggiorna la finestra e limita FPS
         pygame.display.flip()  # Aggiorna il display
         clock.tick(FPS)  # Limita a 60 FPS
+
 
 # Punto di ingresso del programma
 if __name__ == "__main__":
