@@ -20,12 +20,13 @@ class Giocatore:
         # --- EEG ---
         self.direzione = 0
         self.eeg = MuseEEG()
-        if self.eeg.connect():
+        if self.eeg.connect():        
             print("Muse EEG pronto")
         else:
             print("Muse EEG non trovato, useremo valori simulati")
 
         # --- Gryo ---
+        self.soglia = 190
         self.gyro = MuseGYRO()
         if self.gyro.connect():
             print("Muse GYRO pronto")
@@ -52,19 +53,14 @@ class Giocatore:
 
         # --- Cambia direzione con i tasti ---
         print(f"GYRO: {gyro_mean}")
-        soglia = 190
-        if gyro_mean["y"] > soglia: #giu
+        if gyro_mean["y"] > self.soglia: #giu
             self.direzione = 0
-            time.sleep(1)
-        elif gyro_mean["y"] < -soglia: #su
+        elif gyro_mean["y"] < -self.soglia: #su
             self.direzione = 2
-            time.sleep(1)
-        elif gyro_mean["z"] > soglia: #sx
+        elif gyro_mean["z"] > self.soglia: #sx
             self.direzione = 1
-            time.sleep(1)
-        elif gyro_mean["z"] < -soglia: #dx
+        elif gyro_mean["z"] < -self.soglia: #dx
             self.direzione = 3
-            time.sleep(1)
 
 
         # --- Calcola dx, dy ---
