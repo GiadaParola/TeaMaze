@@ -61,7 +61,7 @@ def main():
     # Carica le immagini per il gioco
     img_m_statica = carica_immagine(os.path.join(IMG_DIR, "personaggioM.png"), (0, 0, 255))  # Immagine giocatore statica (fallback blu)
     img_minotauro = carica_immagine(os.path.join(IMG_DIR, "minotauro.png"), (200, 0, 0))  # Immagine nemico (fallback rosso)
-    img_ghost = carica_immagine(os.path.join(IMG_DIR, "ghost.gif"), (400, 0, 0))
+    img_ghost = carica_immagine(os.path.join(IMG_DIR, "ghostAnimato.gif"), (400, 0, 0))
     img_drago = carica_immagine(os.path.join(IMG_DIR, "drago.png"), (200, 100, 0))  # Immagine drago
     img_bosco_base = carica_immagine(os.path.join(IMG_DIR, "bosco.png"), (30, 30, 30))  # Immagine sfondo bosco (fallback grigio)
     try:
