@@ -50,9 +50,17 @@ def main():
         except Exception:
             # Se il file non esiste o mixer non inizializzato, ignoriamo
             current_music = None
+
+    def draw_multiline_text(surface, text, pos, font, color, line_spacing=5):
+        """Disegna testo multilinea su una superficie, usando \n per le righe."""
+        x, y = pos
+        for line in text.split('\n'):
+            line_surface = font.render(line, True, color)
+            surface.blit(line_surface, (x, y))
+            y += line_surface.get_height() + line_spacing
    
     screen = pygame.display.set_mode((LARGHEZZA, ALTEZZA))  # Crea finestra principale 1920x1080
-    v_screen = pygame.Surface((V_LARGHEZZA, V_ALTEZZA))  # Superficie virtuale per il rendering (960x540)
+    v_screen = pygame.Surface((960, 540))  # Superficie virtuale per il rendering (960x540)
     clock = pygame.time.Clock()  # Orologio per controllare FPS
     font = pygame.font.SysFont("Arial", 50, bold=True)  # Font per il testo
 
@@ -90,11 +98,12 @@ def main():
     preview1 = carica_immagine(os.path.join(IMG_DIR, "imgMappe", "mappa1.png"), (80, 80, 80))
     preview2 = carica_immagine(os.path.join(IMG_DIR, "imgMappe", "mappa2.png"), (80, 80, 80))
     preview3 = carica_immagine(os.path.join(IMG_DIR, "imgMappe", "mappa3.png"), (80, 80, 80))
+    
     # Prepara lo sfondo del bosco
-   
     ZOOM_SFONDO = 1.8  # Fattore di zoom per lo sfondo
     nw, nh = int(V_LARGHEZZA * ZOOM_SFONDO), int(V_ALTEZZA * ZOOM_SFONDO)  # Nuove dimensioni zoom
     img_bosco = pygame.transform.scale(img_bosco_base, (nw, nh))  # Ridimensiona l'immagine
+    
     # Carica animazioni direzionali (versione piccola per il gioco)
     anim_M_forward = estrai_frames_gif(os.path.join(IMG_DIR, "personaggioMAnimato.gif"), 40)
     anim_M_up = estrai_frames_gif(os.path.join(IMG_DIR, "suAnimatoM.gif"), 28)
@@ -112,6 +121,7 @@ def main():
     anims_M = {"forward": anim_M_forward, "up": anim_M_up, "down": anim_M_down, "left": anim_M_left, "right": anim_M_forward}
     anims_F = {"forward": anim_F_forward, "up": anim_F_up, "down": anim_F_down, "left": anim_F_left, "right": anim_F_forward}
     anims_corrente = None
+    
     # Animazioni nemici (attacchi/pose da fermo)
     anim_drago_fuoco = estrai_frames_gif(os.path.join(IMG_DIR, "dragoFuoco.gif"), 120)
     anim_minotauro_sbuffa = estrai_frames_gif(os.path.join(IMG_DIR, "sbuffoGif.gif"), 100)
@@ -511,6 +521,11 @@ def main():
                 nemico1.start_pos = (500, 300)
                 nemico1.tipo = "SCHELETRO"
                 nemico2 = None
+            
+            testo_livello = "Concentrati per muovere il personaggio!!\nPer far cambiare direzione al personaggio muovi\nla testa nella direzione desiderata!!"
+            # Inizializza font
+            font_livello = pygame.font.SysFont("Arial", 18)
+            colore_testo = (255, 255, 255)
             stato_gioco = "IN_GIOCO"  # Inizia il gioco
 
 
@@ -603,34 +618,22 @@ def main():
             # o scalamela leggermente:
             luce_scalata = pygame.transform.scale(luce_mask, (raggio_dinamico*2, raggio_dinamico*2))
             # --- LUCE DINAMICA ---
-            # 1. Creiamo una superficie per l'oscurità (nera e con alpha)
-            superficie_oscurita = pygame.Surface((V_LARGHEZZA, V_ALTEZZA), pygame.SRCALPHA)
-            superficie_oscurita.fill((0, 0, 0, 235)) # Il 235 indica quanto è buio (0-255)
+            # 1. Creiamo una superficie per l'oscurità (nera con alpha)
+            oscurita = pygame.Surface((V_LARGHEZZA, V_ALTEZZA), pygame.SRCALPHA)
+            oscurita.fill((0, 0, 0, 250))  # quasi nero
 
+            # 2. Posizione del giocatore sullo schermo virtuale
+            pos_x = player.rect.centerx - cam_x - raggio_luce
+            pos_y = player.rect.centery - cam_y - raggio_luce
 
-            # 2. Calcoliamo la posizione del giocatore sullo schermo virtuale
-            # (Non la posizione nel mondo, ma dove appare fisicamente sul monitor)
-            pos_schermo_x = player.rect.centerx - cam_x
-            pos_schermo_y = player.rect.centery - cam_y
+            # 3. "Buchi" nell'oscurità usando la maschera luce
+            oscurita.blit(luce_mask, (pos_x, pos_y), special_flags=pygame.BLEND_RGBA_MIN)
 
-
-            # 3. "Buchiamo" l'oscurità con un cerchio trasparente
-            # Usiamo blend_rgba_min per sottrarre l'oscurità dove c'è il cerchio
-            pygame.draw.circle(superficie_oscurita, (0, 0, 0, 0), (pos_schermo_x, pos_schermo_y), raggio_luce)
-
-
-            # 4. Applichiamo la maschera sulla virtual_screen
-            v_screen.blit(superficie_oscurita, (0, 0))
+            # 4. Applichiamo sullo schermo virtuale
+            v_screen.blit(oscurita, (0, 0))
 
 
             # --- INTERFACCIA (UI) ---
-            # Mostriamo il valore del raggio in un angolo
-            txt_raggio = font.render(f"Raggio Luce: {raggio_luce}", True, (255, 255, 255))
-            v_screen.blit(txt_raggio, (10, 10))
-            oscurita = pygame.Surface((V_LARGHEZZA, V_ALTEZZA), pygame.SRCALPHA)
-            oscurita.fill((0, 0, 0, 250)) # 250 è quasi nero totale
-
-
             # 2. Calcoliamo dove si trova il giocatore sullo schermo
             pos_x = player.rect.centerx - cam_x - raggio_luce
             pos_y = player.rect.centery - cam_y - raggio_luce
@@ -644,6 +647,8 @@ def main():
             # 4. Applichiamo l'oscurità finale sullo schermo virtuale
             v_screen.blit(oscurita, (0, 0))
 
+            # Disegna il testo del livello in alto a sinistra
+            draw_multiline_text(v_screen, testo_livello, (100, 60), font_livello, colore_testo)
 
             # Disegno finale
             screen.blit(pygame.transform.scale(v_screen, (LARGHEZZA, ALTEZZA)), (0, 0))
