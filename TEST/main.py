@@ -61,7 +61,7 @@ def main():
     # Carica le immagini per il gioco
     img_m_statica = carica_immagine(os.path.join(IMG_DIR, "personaggioM.png"), (0, 0, 255))  # Immagine giocatore statica (fallback blu)
     img_minotauro = carica_immagine(os.path.join(IMG_DIR, "minotauro.png"), (200, 0, 0))  # Immagine nemico (fallback rosso)
-    img_scheletro = carica_immagine(os.path.join(IMG_DIR, "scheletroOro.png"), (400, 0, 0))
+    img_scheletro = carica_immagine(os.path.join(IMG_DIR, "ghost.png"), (400, 0, 0))
     img_drago = carica_immagine(os.path.join(IMG_DIR, "drago.png"), (200, 100, 0))  # Immagine drago
     img_bosco_base = carica_immagine(os.path.join(IMG_DIR, "bosco.png"), (30, 30, 30))  # Immagine sfondo bosco (fallback grigio)
     try:
@@ -499,7 +499,7 @@ def main():
                 player = giocatore.Giocatore(60, 390, img_m_statica, frames_animati)
                 nemico1 = nemico.Nemico(500, 300, img_scheletro, grid_info)
                 nemico1.start_pos = (500, 300)
-                nemico1.tipo = "SCHELETRO"
+                nemico1.tipo = "GHOST"
                 nemico2 = None
             stato_gioco = "IN_GIOCO"  # Inizia il gioco
 
@@ -796,13 +796,13 @@ def main():
             
             # Titolo centrato
             txt_titolo = font_titolo.render("IMPOSTAZIONI", True, (255, 255, 255))
-            screen.blit(txt_titolo, (larghezza_attuale // 2 - txt_titolo.get_width() // 2, 120))
+            screen.blit(txt_titolo, (larghezza_attuale // 2 - txt_titolo.get_width() // 2, 180))
             
-            y_start = 250
+            y_start = 350
             spacing = 120
             
             # Calibrazione Audio
-            txt_audio = font_normale.render("Volume Audio:", True, (255, 255, 255))
+            txt_audio = font_normale.render("Audio:", True, (255, 255, 255))
             screen.blit(txt_audio, (larghezza_attuale // 2 - txt_audio.get_width() // 2, y_start))
             
             # Slider volume
@@ -820,52 +820,15 @@ def main():
             pygame.draw.line(screen, (0, 200, 0), (slider_x, slider_y + slider_h // 2), 
                            (indicator_x, slider_y + slider_h // 2), 4)
             
-            # Valore volume
+            # Valore volume (centrato sotto lo slider)
             txt_volume_val = font_piccolo.render(f"{int(volume_audio * 100)}%", True, (255, 255, 255))
-            screen.blit(txt_volume_val, (slider_x + slider_w + 20, slider_y))
-            
-            # Regolazione dimensione schermo
-            txt_dim = font_normale.render("Dimensione Schermo:", True, (255, 255, 255))
-            screen.blit(txt_dim, (LARGHEZZA // 2 - txt_dim.get_width() // 2, y_start + spacing))
-            
-            # Slider dimensione
-            slider_dim_y = y_start + spacing + 50
-            slider_dim_rect = pygame.Rect(slider_x, slider_dim_y, slider_w, slider_h)
-            pygame.draw.rect(screen, (100, 100, 100), slider_dim_rect)
-            pygame.draw.rect(screen, (255, 255, 255), slider_dim_rect, 2)
-            
-            # Indicatore dimensione (normalizzato tra 0.5 e 2.0)
-            dim_normalized = (dimensione_schermo - 0.5) / 1.5
-            indicator_dim_x = slider_x + int(dim_normalized * slider_w)
-            pygame.draw.circle(screen, (255, 255, 255), (indicator_dim_x, slider_dim_y + slider_h // 2), 15)
-            pygame.draw.line(screen, (0, 200, 0), (slider_x, slider_dim_y + slider_h // 2), 
-                           (indicator_dim_x, slider_dim_y + slider_h // 2), 4)
-            
-            # Valore dimensione
-            txt_dim_val = font_piccolo.render(f"{int(dimensione_schermo * 100)}%", True, (255, 255, 255))
-            screen.blit(txt_dim_val, (slider_x + slider_w + 20, slider_dim_y))
-            
-            # Toggle schermo intero/finestra
-            txt_fullscreen = font_normale.render("Modalità Schermo:", True, (255, 255, 255))
-            screen.blit(txt_fullscreen, (larghezza_attuale // 2 - txt_fullscreen.get_width() // 2, y_start + spacing * 2))
-            
-            btn_fullscreen_w = 250
-            btn_fullscreen_h = 60
-            btn_fullscreen_x = larghezza_attuale // 2 - btn_fullscreen_w // 2
-            btn_fullscreen_y = y_start + spacing * 2 + 50
-            btn_fullscreen = pygame.Rect(btn_fullscreen_x, btn_fullscreen_y, btn_fullscreen_w, btn_fullscreen_h)
-            
-            col_fullscreen = (0, 150, 0) if schermo_intero else (150, 150, 150)
-            pygame.draw.rect(screen, col_fullscreen, btn_fullscreen, border_radius=15)
-            txt_fullscreen_val = font_normale.render("INTERO" if schermo_intero else "FINESTRA", True, (255, 255, 255))
-            screen.blit(txt_fullscreen_val, (btn_fullscreen.centerx - txt_fullscreen_val.get_width() // 2, 
-                                            btn_fullscreen.centery - txt_fullscreen_val.get_height() // 2))
+            screen.blit(txt_volume_val, (larghezza_attuale // 2 - txt_volume_val.get_width() // 2, slider_y + slider_h + 10))
             
             # Pulsante Istruzioni
             btn_istruzioni_w = 300
             btn_istruzioni_h = 60
             btn_istruzioni_x = larghezza_attuale // 2 - btn_istruzioni_w // 2
-            btn_istruzioni_y = y_start + spacing * 3 + 20
+            btn_istruzioni_y = y_start + spacing + 20
             btn_istruzioni = pygame.Rect(btn_istruzioni_x, btn_istruzioni_y, btn_istruzioni_w, btn_istruzioni_h)
             
             col_istruzioni = (100, 100, 200) if btn_istruzioni.collidepoint(mouse_pos) else (70, 70, 150)
@@ -874,11 +837,11 @@ def main():
             screen.blit(txt_istruzioni, (btn_istruzioni.centerx - txt_istruzioni.get_width() // 2, 
                                         btn_istruzioni.centery - txt_istruzioni.get_height() // 2))
             
-            # Pulsante Indietro
+            # Pulsante Indietro (avvicinato al centro)
             btn_indietro_w = 200
             btn_indietro_h = 60
             btn_indietro_x = larghezza_attuale // 2 - btn_indietro_w // 2
-            btn_indietro_y = altezza_attuale - 220
+            btn_indietro_y = altezza_attuale // 2 + 200
             btn_indietro = pygame.Rect(btn_indietro_x, btn_indietro_y, btn_indietro_w, btn_indietro_h)
             
             col_indietro = (150, 0, 0) if btn_indietro.collidepoint(mouse_pos) else (100, 0, 0)
@@ -896,36 +859,6 @@ def main():
                         volume_audio = max(0.0, min(1.0, rel_x / slider_w))
                         pygame.mixer.music.set_volume(volume_audio)
                     
-                    # Click su slider dimensione
-                    elif slider_dim_rect.collidepoint(e.pos):
-                        rel_x = e.pos[0] - slider_x
-                        dimensione_schermo = max(0.5, min(2.0, 0.5 + (rel_x / slider_w) * 1.5))
-                        larghezza_attuale = int(LARGHEZZA * dimensione_schermo)
-                        altezza_attuale = int(ALTEZZA * dimensione_schermo)
-                        screen = pygame.display.set_mode((larghezza_attuale, altezza_attuale))
-                        # Aggiorna img_menu per la nuova dimensione
-                        try:
-                            img_menu_temp = pygame.image.load(os.path.join(IMG_DIR, "menuPrincipale.png")).convert()
-                            img_menu = pygame.transform.scale(img_menu_temp, (larghezza_attuale, altezza_attuale))
-                        except:
-                            img_menu = pygame.Surface((larghezza_attuale, altezza_attuale))
-                            img_menu.fill((20, 20, 20))
-                    
-                    # Click su toggle schermo intero
-                    elif btn_fullscreen.collidepoint(e.pos):
-                        schermo_intero = not schermo_intero
-                        if schermo_intero:
-                            screen = pygame.display.set_mode((larghezza_attuale, altezza_attuale), pygame.FULLSCREEN)
-                        else:
-                            screen = pygame.display.set_mode((larghezza_attuale, altezza_attuale))
-                        # Aggiorna img_menu per la nuova dimensione
-                        try:
-                            img_menu_temp = pygame.image.load(os.path.join(IMG_DIR, "menuPrincipale.png")).convert()
-                            img_menu = pygame.transform.scale(img_menu_temp, (larghezza_attuale, altezza_attuale))
-                        except:
-                            img_menu = pygame.Surface((larghezza_attuale, altezza_attuale))
-                            img_menu.fill((20, 20, 20))
-                    
                     # Click su istruzioni
                     elif btn_istruzioni.collidepoint(e.pos):
                         stato_gioco = "ISTRUZIONI"
@@ -940,21 +873,6 @@ def main():
                 rel_x = mouse_pos[0] - slider_x
                 volume_audio = max(0.0, min(1.0, rel_x / slider_w))
                 pygame.mixer.music.set_volume(volume_audio)
-            
-            # Gestione drag slider dimensione
-            if mouse_buttons[0] and slider_dim_rect.collidepoint(mouse_pos):
-                rel_x = mouse_pos[0] - slider_x
-                dimensione_schermo = max(0.5, min(2.0, 0.5 + (rel_x / slider_w) * 1.5))
-                larghezza_attuale = int(LARGHEZZA * dimensione_schermo)
-                altezza_attuale = int(ALTEZZA * dimensione_schermo)
-                screen = pygame.display.set_mode((larghezza_attuale, altezza_attuale))
-                # Aggiorna img_menu per la nuova dimensione
-                try:
-                    img_menu_temp = pygame.image.load(os.path.join(IMG_DIR, "menuPrincipale.png")).convert()
-                    img_menu = pygame.transform.scale(img_menu_temp, (larghezza_attuale, altezza_attuale))
-                except:
-                    img_menu = pygame.Surface((larghezza_attuale, altezza_attuale))
-                    img_menu.fill((20, 20, 20))
         
         # STATO: Istruzioni
         elif stato_gioco == "ISTRUZIONI":
