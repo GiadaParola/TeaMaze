@@ -144,7 +144,7 @@ def main():
     schermo_intero = False  # Modalità schermo intero
     larghezza_attuale = LARGHEZZA
     altezza_attuale = ALTEZZA
-    livelli_possibili = [os.path.join(IMG_DIR, 'mappa1.tmx'), os.path.join(IMG_DIR, 'mappa2.tmx'), os.path.join(IMG_DIR, 'mapp32.tmx')]  # Livello non ancora scelto]
+    livelli_possibili = [os.path.join(IMG_DIR, 'mappa1.tmx'), os.path.join(IMG_DIR, 'mappa2.tmx'), os.path.join(IMG_DIR, 'mappa3.tmx')]  # Livello non ancora scelto]
     frames_animati = []  # Lista frames animazione giocatore
     raggio_luce = 200
     raggio_luce_min = 100  # Raggio minimo del campo visivo

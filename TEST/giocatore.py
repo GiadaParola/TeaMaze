@@ -1,4 +1,5 @@
 import pygame
+import time
 from museEEG import MuseEEG
 from museGYRO import MuseGYRO
 
@@ -44,7 +45,7 @@ class Giocatore:
         gyro_mean = self.gyro.get_xyz()
 
         # --- Soglia Beta ---
-        soglia_beta = 0.15
+        soglia_beta = 0.1
         beta = band_powers.get('Beta', 0)
         print(f"Beta: {beta:.3f}")
         vel = 2 if beta > soglia_beta else 0
@@ -54,12 +55,16 @@ class Giocatore:
         soglia = 190
         if gyro_mean["y"] > soglia: #giu
             self.direzione = 0
+            time.sleep(1)
         elif gyro_mean["y"] < -soglia: #su
             self.direzione = 2
+            time.sleep(1)
         elif gyro_mean["z"] > soglia: #sx
             self.direzione = 1
+            time.sleep(1)
         elif gyro_mean["z"] < -soglia: #dx
             self.direzione = 3
+            time.sleep(1)
 
 
         # --- Calcola dx, dy ---
