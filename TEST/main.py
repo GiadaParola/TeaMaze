@@ -248,7 +248,8 @@ def main():
                     if rect_uscita.collidepoint(e.pos):
                         pygame.quit()
                         sys.exit()
-                       
+        
+        # --- SELEZIONA PERSONAGGIO ---
         elif stato_gioco == "SELEZIONE_PERSONAGGIO":
 
 
@@ -372,7 +373,7 @@ def main():
                             elif i == 2:
                                 livello_scelto = livelli_possibili[1]
                             stato_gioco = "INIZIALIZZA"
-            # STATO: Inizializza mappa e oggetti di gioco
+        # --- INIZIALIZZA ---
         elif stato_gioco == "INIZIALIZZA":
             if livello_scelto is None:
                 print("ERRORE: livello non selezionato")
@@ -487,7 +488,7 @@ def main():
             stato_gioco = "IN_GIOCO"  # Inizia il gioco
 
 
-        # STATO: Gioco in corso
+        # --- IN GIOCO ---
         elif stato_gioco == "IN_GIOCO":
             keys = pygame.key.get_pressed()  # Prendi lo stato di tutte le tastiere
            
@@ -620,7 +621,7 @@ def main():
             # Disegno finale
             screen.blit(pygame.transform.scale(v_screen, (LARGHEZZA, ALTEZZA)), (0, 0))
        
-        # STATO: Domanda a risposta multipla
+        # --- DOMANDA RISPOSTA ---
         elif stato_gioco == "DOMANDA_RISPOSTA":
             # Disegna il gioco in pausa sullo sfondo
             screen.blit(pygame.transform.scale(v_screen, (LARGHEZZA, ALTEZZA)), (0, 0))
@@ -769,7 +770,7 @@ def main():
                     enemy_anim_frames = []
                     enemy_anim_index = 0
         
-        # STATO: Impostazioni
+        # --- IMPOSTAZIONI ---
         elif stato_gioco == "IMPOSTAZIONI":
             screen.fill((40, 40, 40))  # Sfondo grigio scuro
             
@@ -779,7 +780,7 @@ def main():
             
             # Titolo centrato
             txt_titolo = font_titolo.render("IMPOSTAZIONI", True, (255, 255, 255))
-            screen.blit(txt_titolo, (larghezza_attuale // 2 - txt_titolo.get_width() // 2, 100))
+            screen.blit(txt_titolo, (larghezza_attuale // 2 - txt_titolo.get_width() // 2, 120))
             
             y_start = 250
             spacing = 120
@@ -861,7 +862,7 @@ def main():
             btn_indietro_w = 200
             btn_indietro_h = 60
             btn_indietro_x = larghezza_attuale // 2 - btn_indietro_w // 2
-            btn_indietro_y = altezza_attuale - 150
+            btn_indietro_y = altezza_attuale - 220
             btn_indietro = pygame.Rect(btn_indietro_x, btn_indietro_y, btn_indietro_w, btn_indietro_h)
             
             col_indietro = (150, 0, 0) if btn_indietro.collidepoint(mouse_pos) else (100, 0, 0)
