@@ -884,7 +884,7 @@ def main():
             
             # Titolo centrato
             txt_titolo = font_titolo.render("COME FUNZIONA IL GIOCO", True, (255, 255, 255))
-            screen.blit(txt_titolo, (larghezza_attuale // 2 - txt_titolo.get_width() // 2, 80))
+            screen.blit(txt_titolo, (larghezza_attuale // 2 - txt_titolo.get_width() // 2, 120))
             
             # Testo istruzioni
             istruzioni = [
@@ -919,7 +919,7 @@ def main():
             btn_indietro_w = 200
             btn_indietro_h = 60
             btn_indietro_x = larghezza_attuale // 2 - btn_indietro_w // 2
-            btn_indietro_y = altezza_attuale - 150
+            btn_indietro_y = altezza_attuale - 200
             btn_indietro = pygame.Rect(btn_indietro_x, btn_indietro_y, btn_indietro_w, btn_indietro_h)
             
             col_indietro = (150, 0, 0) if btn_indietro.collidepoint(mouse_pos) else (100, 0, 0)
