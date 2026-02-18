@@ -72,8 +72,24 @@ def main():
         # Fallback se l'immagine manca
         img_menu = pygame.Surface((LARGHEZZA, ALTEZZA))
         img_menu.fill((20, 20, 20))
-    # Carica schermata selezione livelli e preview mappe
-    img_selezione = None  # Non usare più immagine di sfondo per la selezione livelli
+    
+    try:
+        # Carica lo sfondo del seleziona livello
+        img_seleziona_livello = pygame.image.load(os.path.join(IMG_DIR, "sfondoSceltaLivello.jpg")).convert()
+        img_seleziona_livello = pygame.transform.scale(img_seleziona_livello, (LARGHEZZA, ALTEZZA))
+    except:
+        # Fallback se l'immagine manca
+        img_seleziona_livello = pygame.Surface((LARGHEZZA, ALTEZZA))
+        img_seleziona_livello.fill((20, 20, 20))
+    
+    try:
+        # Carica lo sfondo del seleziona livello
+        img_seleziona_personaggio = pygame.image.load(os.path.join(IMG_DIR, "sfondoSceltaPersonaggio.jpg")).convert()
+        img_seleziona_personaggio = pygame.transform.scale(img_seleziona_personaggio, (LARGHEZZA, ALTEZZA))
+    except:
+        # Fallback se l'immagine manca
+        img_seleziona_personaggio = pygame.Surface((LARGHEZZA, ALTEZZA))
+        img_seleziona_personaggio.fill((20, 20, 20))
 
 
     preview1 = carica_immagine(os.path.join(IMG_DIR, "imgMappe", "mappa1.png"), (80, 80, 80))
@@ -253,8 +269,8 @@ def main():
         elif stato_gioco == "SELEZIONE_PERSONAGGIO":
 
 
-            # Sfondo bianco per il menu di selezione personaggio
-            screen.fill((255, 255, 255))
+            # Sfondo per il menu di selezione personaggio
+            screen.blit(img_seleziona_personaggio, (0, 0))
 
 
             # Rettangoli per le frecce e per il pulsante "Seleziona"
@@ -329,8 +345,8 @@ def main():
                             frames_animati = anim_F_forward
                         stato_gioco = "SELEZIONE_LIVELLO"
         elif stato_gioco == "SELEZIONE_LIVELLO":
-            # Sfondo bianco
-            screen.fill((255, 255, 255))
+            # Sfondo per il msnu di selezione del livello
+            screen.blit(img_seleziona_livello, (0, 0))
 
 
             # Preview più piccole e inverti 2 e 3
