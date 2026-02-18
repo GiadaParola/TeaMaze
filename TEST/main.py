@@ -29,9 +29,9 @@ def main():
     SOUNDS_DIR = os.path.join(BASE_DIR, "sounds")
     MUSIC_FILES = {
         "MENU": os.path.join(SOUNDS_DIR, "awesomeness.wav"),
-        "LIVELLO1": os.path.join(SOUNDS_DIR, "01 First Light.mp3"),
-        "LIVELLO2": os.path.join(SOUNDS_DIR, "05 Sanctuary.mp3"),
-        "LIVELLO3": os.path.join(SOUNDS_DIR, "11 Chronicles of the Archive.mp3"),
+        "LIVELLO1": os.path.join(SOUNDS_DIR, "01_First_Light.mp3"),
+        "LIVELLO2": os.path.join(SOUNDS_DIR, "05_Sanctuary.mp3"),
+        "LIVELLO3": os.path.join(SOUNDS_DIR, "11_Chronicles_of_the_Archive.mp3"),
     }
 
 
@@ -144,7 +144,7 @@ def main():
     schermo_intero = False  # Modalità schermo intero
     larghezza_attuale = LARGHEZZA
     altezza_attuale = ALTEZZA
-    livelli_possibili = [os.path.join(IMG_DIR, 'mappa1.tmx'), os.path.join(IMG_DIR, 'mappa3.tmx'), os.path.join(IMG_DIR, 'mappa2.tmx')]  # Livello non ancora scelto]
+    livelli_possibili = [os.path.join(IMG_DIR, 'mappa1.tmx'), os.path.join(IMG_DIR, 'mappa2.tmx'), os.path.join(IMG_DIR, 'mapp32.tmx')]  # Livello non ancora scelto]
     frames_animati = []  # Lista frames animazione giocatore
     raggio_luce = 200
     raggio_luce_min = 100  # Raggio minimo del campo visivo
@@ -183,12 +183,12 @@ def main():
     # Personaggi disponibili per il menu di selezione
     personaggi = [
         {
-            "nome": "Personaggio M",
+            "nome": "Jamie",
             "codice": "M",
             "frames": estrai_frames_gif(os.path.join(IMG_DIR, "personaggioMAnimato.gif"), 200)
         },
         {
-            "nome": "Personaggio F",
+            "nome": "Angel",
             "codice": "F",
             "frames": estrai_frames_gif(os.path.join(IMG_DIR, "personaggioFAnimato.gif"), 200)
         }
@@ -486,20 +486,20 @@ def main():
                 nemico1.tipo = "MINOTAURO"
                 nemico2 = None
             elif(livello_scelto==livelli_possibili[1]):
-                # Livello 2: solo Drago
-                pos_iniziale_giocatore = (440, 580)
-                player = giocatore.Giocatore(440, 580, img_m_statica, frames_animati)
-                nemico1 = nemico.Nemico(600, 400, img_drago, grid_info)
-                nemico1.start_pos = (600, 400)
-                nemico1.tipo = "DRAGO"
-                nemico2 = None
-            else:
-                # Livello 3: solo Ghost
+                # Livello 2: solo Ghost
                 pos_iniziale_giocatore = (60, 390)
                 player = giocatore.Giocatore(60, 390, img_m_statica, frames_animati)
+                nemico1 = nemico.Nemico(600, 400, img_drago, grid_info)
+                nemico1.start_pos = (600, 400)
+                nemico1.tipo = "GHOST"
+                nemico2 = None
+            else:
+                # Livello 3: solo Drago
+                pos_iniziale_giocatore = (440, 580)
+                player = giocatore.Giocatore(440, 580, img_m_statica, frames_animati)
                 nemico1 = nemico.Nemico(500, 300, img_ghost, grid_info)
                 nemico1.start_pos = (500, 300)
-                nemico1.tipo = "GHOST"
+                nemico1.tipo = "DRAGO"
                 nemico2 = None
             stato_gioco = "IN_GIOCO"  # Inizia il gioco
 
