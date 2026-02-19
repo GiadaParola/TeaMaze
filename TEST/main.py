@@ -144,7 +144,7 @@ def main():
     schermo_intero = False  # Modalità schermo intero
     larghezza_attuale = LARGHEZZA
     altezza_attuale = ALTEZZA
-    livelli_possibili = [os.path.join(IMG_DIR, 'mappa1.tmx'), os.path.join(IMG_DIR, 'mappa2.tmx'), os.path.join(IMG_DIR, 'mapp32.tmx')]  # Livello non ancora scelto]
+    livelli_possibili = [os.path.join(IMG_DIR, 'mappa1.tmx'), os.path.join(IMG_DIR, 'mappa2.tmx'), os.path.join(IMG_DIR, 'mappa3.tmx')]  # Livello non ancora scelto]
     frames_animati = []  # Lista frames animazione giocatore
     raggio_luce = 200
     raggio_luce_min = 100  # Raggio minimo del campo visivo
@@ -268,127 +268,193 @@ def main():
         # --- SELEZIONA PERSONAGGIO ---
         elif stato_gioco == "SELEZIONE_PERSONAGGIO":
 
-
-            # Sfondo per il menu di selezione personaggio
+            # Sfondo
             screen.blit(img_seleziona_personaggio, (0, 0))
 
-
-            # Rettangoli per le frecce e per il pulsante "Seleziona"
+            # Rettangoli pulsanti
             btn_sx = pygame.Rect(LARGHEZZA // 2 - 250, ALTEZZA // 2 - 60, 80, 80)
             btn_dx = pygame.Rect(LARGHEZZA // 2 + 170, ALTEZZA // 2 - 60, 80, 80)
             btn_select = pygame.Rect(LARGHEZZA // 2 - 150, ALTEZZA // 2 + 200, 300, 80)
 
-
-            # Disegna il personaggio attualmente selezionato (GIF)
+            # Personaggio corrente
             personaggio_corrente = personaggi[indice_personaggio]
             frames_correnti = personaggio_corrente["frames"]
 
-
+            # Animazione GIF
             if frames_correnti:
-                # Anima la GIF: ogni 5 tick cambia frame
                 frame_da_mostrare = frames_correnti[(indice_frame_personaggio // 5) % len(frames_correnti)]
                 rect_gif = frame_da_mostrare.get_rect(center=(LARGHEZZA // 2, ALTEZZA // 2 - 40))
                 screen.blit(frame_da_mostrare, rect_gif)
                 indice_frame_personaggio = (indice_frame_personaggio + 1) % (len(frames_correnti) * 5)
             else:
-                # Fallback se la GIF non è stata caricata
                 rect_placeholder = pygame.Rect(LARGHEZZA // 2 - 100, ALTEZZA // 2 - 140, 200, 200)
                 pygame.draw.rect(screen, (200, 200, 200), rect_placeholder, border_radius=20)
 
+            # ===============================
+            # NOME PERSONAGGIO CON SFONDO + OMBRA
+            # ===============================
 
-            # Nome del personaggio
             txt_nome = font.render(personaggio_corrente["nome"], True, (0, 0, 0))
-            screen.blit(
-                txt_nome,
-                (LARGHEZZA // 2 - txt_nome.get_width() // 2, 120)
+            rect_nome = txt_nome.get_rect(center=(LARGHEZZA // 2, 160))
+
+            padding_x = 20
+            padding_y = 10
+            ombra_offset = 6
+
+            # Rettangolo sfondo bianco
+            rect_sfondo = pygame.Rect(
+                rect_nome.x - padding_x,
+                rect_nome.y - padding_y,
+                rect_nome.width + padding_x * 2,
+                rect_nome.height + padding_y * 2
             )
 
+            # Rettangolo ombra
+            rect_ombra = rect_sfondo.copy()
+            rect_ombra.x += ombra_offset
+            rect_ombra.y += ombra_offset
 
-            # Disegno dei pulsanti freccia
+            # Disegno ombra (semi-trasparente)
+            ombra_surface = pygame.Surface((rect_ombra.width, rect_ombra.height), pygame.SRCALPHA)
+            ombra_surface.fill((0, 0, 0, 100))  # nero con alpha
+            screen.blit(ombra_surface, (rect_ombra.x, rect_ombra.y))
+
+            # Disegno rettangolo bianco sopra l’ombra
+            pygame.draw.rect(screen, (255, 255, 255), rect_sfondo, border_radius=12)
+
+            # Disegno testo sopra tutto
+            screen.blit(txt_nome, rect_nome)
+
+            # ===============================
+
+            # Pulsanti freccia
             pygame.draw.rect(screen, (220, 220, 220), btn_sx, border_radius=15)
             pygame.draw.rect(screen, (220, 220, 220), btn_dx, border_radius=15)
 
-
             txt_sx = font.render("<", True, (0, 0, 0))
             txt_dx = font.render(">", True, (0, 0, 0))
-            screen.blit(txt_sx, (btn_sx.centerx - txt_sx.get_width() // 2, btn_sx.centery - txt_sx.get_height() // 2))
-            screen.blit(txt_dx, (btn_dx.centerx - txt_dx.get_width() // 2, btn_dx.centery - txt_dx.get_height() // 2))
 
+            screen.blit(txt_sx, (btn_sx.centerx - txt_sx.get_width() // 2,
+                                btn_sx.centery - txt_sx.get_height() // 2))
 
-            # Pulsante di selezione
+            screen.blit(txt_dx, (btn_dx.centerx - txt_dx.get_width() // 2,
+                                btn_dx.centery - txt_dx.get_height() // 2))
+
+            # Pulsante selezione
             pygame.draw.rect(screen, (0, 150, 0), btn_select, border_radius=20)
             txt_sel = font.render("SELEZIONA", True, (255, 255, 255))
-            screen.blit(
-                txt_sel,
-                (btn_select.centerx - txt_sel.get_width() // 2, btn_select.centery - txt_sel.get_height() // 2)
-            )
 
+            screen.blit(txt_sel,
+                        (btn_select.centerx - txt_sel.get_width() // 2,
+                        btn_select.centery - txt_sel.get_height() // 2))
 
-            # Gestione degli input del mouse nel menu personaggio
-            for e in event:
+            # Gestione input mouse
+            for e in pygame.event.get():
                 if e.type == pygame.MOUSEBUTTONDOWN:
                     if btn_sx.collidepoint(e.pos):
                         indice_personaggio = (indice_personaggio - 1) % len(personaggi)
                         indice_frame_personaggio = 0
+
                     elif btn_dx.collidepoint(e.pos):
                         indice_personaggio = (indice_personaggio + 1) % len(personaggi)
                         indice_frame_personaggio = 0
+
                     elif btn_select.collidepoint(e.pos):
-                        # Conferma selezione personaggio
                         personaggio_scelto = personaggio_corrente["codice"]
-                        # Assegna il dizionario di animazioni corretto
+
                         if personaggio_scelto == "M":
                             anims_corrente = anims_M
                             frames_animati = anim_M_forward
                         elif personaggio_scelto == "F":
                             anims_corrente = anims_F
                             frames_animati = anim_F_forward
+
                         stato_gioco = "SELEZIONE_LIVELLO"
+
+        # --- SELEZIONA LIVELLO ---
         elif stato_gioco == "SELEZIONE_LIVELLO":
-            # Sfondo per il msnu di selezione del livello
+
             screen.blit(img_seleziona_livello, (0, 0))
 
+            mouse_pos = pygame.mouse.get_pos()
 
-            # Preview più piccole e inverti 2 e 3
             pv_w, pv_h = 340, 210
             spacing = 70
             total_w = pv_w * 3 + spacing * 2
             start_x = LARGHEZZA // 2 - total_w // 2
-            y = ALTEZZA // 2 - pv_h // 2 + 40
+            y = ALTEZZA // 2 - pv_h // 2 + 80   # leggermente più in basso per lasciare spazio al titolo
 
-
-            # Inverti preview2 e preview3
+            # Ordine visivo (2 e 3 invertiti)
             previews = [preview1, preview3, preview2]
+
+            # Mappa reale dei livelli
+            mappa_livelli = [0, 2, 1]
+
             rects = []
+
             for i, pv in enumerate(previews):
+
                 x = start_x + i * (pv_w + spacing)
                 pv_scaled = pygame.transform.smoothscale(pv, (pv_w, pv_h))
                 rect = pygame.Rect(x, y, pv_w, pv_h)
                 rects.append(rect)
-                # highlight on hover
+
+                # =============================
+                # SCRITTA SOPRA L'IMMAGINE
+                # =============================
+
+                txt = font.render(f"LIVELLO {i+1}", True, (0, 0, 0))
+                rect_txt = txt.get_rect(center=(x + pv_w // 2, y - 50))
+
+                padding_x = 20
+                padding_y = 10
+                ombra_offset = 6
+
+                # Rettangolo bianco
+                rect_bg = pygame.Rect(
+                    rect_txt.x - padding_x,
+                    rect_txt.y - padding_y,
+                    rect_txt.width + padding_x * 2,
+                    rect_txt.height + padding_y * 2
+                )
+
+                # Rettangolo ombra
+                rect_shadow = rect_bg.copy()
+                rect_shadow.x += ombra_offset
+                rect_shadow.y += ombra_offset
+
+                # Disegno ombra
+                shadow_surface = pygame.Surface((rect_shadow.width, rect_shadow.height), pygame.SRCALPHA)
+                shadow_surface.fill((0, 0, 0, 110))
+                screen.blit(shadow_surface, (rect_shadow.x, rect_shadow.y))
+
+                # Disegno rettangolo bianco
+                pygame.draw.rect(screen, (255, 255, 255), rect_bg, border_radius=14)
+
+                # Disegno testo
+                screen.blit(txt, rect_txt)
+
+                # =============================
+                # HIGHLIGHT HOVER
+                # =============================
                 if rect.collidepoint(mouse_pos):
-                    pygame.draw.rect(screen, (255, 200, 0), rect.inflate(12, 12), 5)
+                    pygame.draw.rect(screen, (255, 200, 0), rect.inflate(16, 16), 5, border_radius=18)
                 else:
-                    pygame.draw.rect(screen, (0, 0, 0), rect.inflate(8, 8), 3)
+                    pygame.draw.rect(screen, (0, 0, 0), rect.inflate(10, 10), 3, border_radius=18)
+
+                # Disegno preview
                 screen.blit(pv_scaled, (x, y))
-                # label
-                txt = font.render(f"LIVELLO {i+1}", True, (40, 40, 40))
-                screen.blit(txt, (x + 14, y + 14))
 
-
-            # Click sulle preview apre il livello corrispondente
-            for e in event:
+            # =============================
+            # GESTIONE CLICK
+            # =============================
+            for e in pygame.event.get():
                 if e.type == pygame.MOUSEBUTTONDOWN:
                     for i, r in enumerate(rects):
                         if r.collidepoint(e.pos):
-                            # L'ordine dei livelli rimane invariato rispetto a livelli_possibili
-                            if i == 0:
-                                livello_scelto = livelli_possibili[0]
-                            elif i == 1:
-                                livello_scelto = livelli_possibili[2]
-                            elif i == 2:
-                                livello_scelto = livelli_possibili[1]
+                            livello_scelto = livelli_possibili[mappa_livelli[i]]
                             stato_gioco = "INIZIALIZZA"
+
         # --- INIZIALIZZA ---
         elif stato_gioco == "INIZIALIZZA":
             if livello_scelto is None:
@@ -486,20 +552,20 @@ def main():
                 nemico1.tipo = "MINOTAURO"
                 nemico2 = None
             elif(livello_scelto==livelli_possibili[1]):
-                # Livello 2: solo Ghost
-                pos_iniziale_giocatore = (60, 390)
-                player = giocatore.Giocatore(60, 390, img_m_statica, frames_animati)
+                # Livello 2: solo Drago
+                pos_iniziale_giocatore = (110, 390)
+                player = giocatore.Giocatore(110, 390, img_m_statica, frames_animati)
                 nemico1 = nemico.Nemico(600, 400, img_drago, grid_info)
                 nemico1.start_pos = (600, 400)
-                nemico1.tipo = "GHOST"
+                nemico1.tipo = "DRAGO"
                 nemico2 = None
             else:
-                # Livello 3: solo Drago
+                # Livello 3: solo Ghost
                 pos_iniziale_giocatore = (440, 580)
                 player = giocatore.Giocatore(440, 580, img_m_statica, frames_animati)
                 nemico1 = nemico.Nemico(500, 300, img_ghost, grid_info)
                 nemico1.start_pos = (500, 300)
-                nemico1.tipo = "DRAGO"
+                nemico1.tipo = "GHOST"
                 nemico2 = None
             stato_gioco = "IN_GIOCO"  # Inizia il gioco
 
@@ -507,32 +573,38 @@ def main():
         # --- IN GIOCO ---
         elif stato_gioco == "IN_GIOCO":
             keys = pygame.key.get_pressed()  # Prendi lo stato di tutte le tastiere
+
+            player.gyro.update()
+            gyro = player.gyro.get_xyz()
            
             # Gestione animazioni in base alla direzione
             if anims_corrente:
-                if keys[pygame.K_UP]:
+                if gyro["y"] < -player.soglia:
                     player.frames = anims_corrente["up"]
-                elif keys[pygame.K_DOWN]:
+                elif gyro["y"] > player.soglia:
                     player.frames = anims_corrente["down"]
-                elif keys[pygame.K_LEFT]:
+                elif gyro["z"] > player.soglia:
                     player.frames = anims_corrente["left"]
-                elif keys[pygame.K_RIGHT]:
+                elif gyro["z"] < -player.soglia:
                     player.frames = anims_corrente["right"]
-                else:
-                    # Se non premi alcun tasto, torna all'animazione standard (forward)
-                    player.frames = anims_corrente["forward"]
+
+            player.eeg.update()
+            eeg = player.eeg.get_band_powers()
+            beta_value = eeg.get('Beta', 0)
+
+            raggio_luce = raggio_luce_min + beta_value * (raggio_luce_max - raggio_luce_min)
            
             # Gestione espansione del campo visivo con tasto E
-            if keys[pygame.K_e]:
-                raggio_luce = min(raggio_luce + incremento_raggio, raggio_luce_max)
+            #if keys[pygame.K_e]:
+            #    raggio_luce = min(raggio_luce + incremento_raggio, raggio_luce_max)
                 # Rigenera la maschera di luce quando il raggio cambia
-                luce_mask = crea_superficie_luce(raggio_luce)
+            #    luce_mask = crea_superficie_luce(raggio_luce)
            
             # Gestione rimpicciolimento del campo visivo con tasto R
-            if keys[pygame.K_r]:
-                raggio_luce = max(raggio_luce - incremento_raggio, raggio_luce_min)
+            #if keys[pygame.K_r]:
+            #    raggio_luce = max(raggio_luce - incremento_raggio, raggio_luce_min)
                 # Rigenera la maschera di luce quando il raggio cambia
-                luce_mask = crea_superficie_luce(raggio_luce)
+            #    luce_mask = crea_superficie_luce(raggio_luce)
            
             # Calcola movimento in base a come muovi la testa
             player.muovi(muri)
@@ -613,27 +685,6 @@ def main():
 
 
             # --- INTERFACCIA (UI) ---
-            # Mostriamo il valore del raggio in un angolo
-            txt_raggio = font.render(f"Raggio Luce: {raggio_luce}", True, (255, 255, 255))
-            v_screen.blit(txt_raggio, (10, 10))
-            oscurita = pygame.Surface((V_LARGHEZZA, V_ALTEZZA), pygame.SRCALPHA)
-            oscurita.fill((0, 0, 0, 250)) # 250 è quasi nero totale
-
-
-            # 2. Calcoliamo dove si trova il giocatore sullo schermo
-            pos_x = player.rect.centerx - cam_x - raggio_luce
-            pos_y = player.rect.centery - cam_y - raggio_luce
-
-
-            # 3. Usiamo il metodo BLEND_RGBA_MIN per "sottrarre" l'oscurità
-            # Questo crea l'effetto dissolvenza tra luce e buio
-            oscurita.blit(luce_mask, (pos_x, pos_y), special_flags=pygame.BLEND_RGBA_MIN)
-
-
-            # 4. Applichiamo l'oscurità finale sullo schermo virtuale
-            v_screen.blit(oscurita, (0, 0))
-
-
             # Disegno finale
             screen.blit(pygame.transform.scale(v_screen, (LARGHEZZA, ALTEZZA)), (0, 0))
        
