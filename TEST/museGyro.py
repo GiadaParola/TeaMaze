@@ -12,7 +12,6 @@ class MuseGYRO(Muse):
             n_channels=n_channels or self.GYRO_CH,
             window_s=window_s
         )
-        self.soglia_picco = soglia_picco  # soglia per rilevare picchi
 
     def get_xyz(self):
         latest = self.get_latest()
