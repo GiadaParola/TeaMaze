@@ -349,7 +349,7 @@ def main():
                         btn_select.centery - txt_sel.get_height() // 2))
 
             # Gestione input mouse
-            for e in pygame.event.get():
+            for e in event:
                 if e.type == pygame.MOUSEBUTTONDOWN:
                     if btn_sx.collidepoint(e.pos):
                         indice_personaggio = (indice_personaggio - 1) % len(personaggi)
@@ -448,7 +448,7 @@ def main():
             # =============================
             # GESTIONE CLICK
             # =============================
-            for e in pygame.event.get():
+            for e in event:
                 if e.type == pygame.MOUSEBUTTONDOWN:
                     for i, r in enumerate(rects):
                         if r.collidepoint(e.pos):
