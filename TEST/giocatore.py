@@ -18,7 +18,7 @@ class Giocatore:
         self.ultimo_frames = frames_animati  # Memorizza l'ultimo set di frame per rilevare il cambio
 
         # --- EEG ---
-        self.soglia_beta = 0.03
+        self.soglia_beta = 0.05
         self.direzione = 0
         self.eeg = MuseEEG()
         if self.eeg.connect():        
@@ -27,7 +27,7 @@ class Giocatore:
             print("Muse EEG non trovato, useremo valori simulati")
 
         # --- Gryo ---
-        self.soglia = 190
+        self.soglia = 180
         self.gyro = MuseGYRO()
         if self.gyro.connect():
             print("Muse GYRO pronto")
