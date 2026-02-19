@@ -15,10 +15,11 @@ from domande import DOMANDE
    
 
 
-def crea_maschera_luce_sfumata(raggio_esterno, raggio_inizio_sfumatura):
+def crea_maschera_luce_sfumata(raggio_esterno, raggio_inizio_sfumatura, alpha_bordo=255):
     """Maschera radiale: trasparente vicino al player, poi sfuma fino al nero."""
     raggio_esterno = max(1, int(raggio_esterno))
     raggio_inizio_sfumatura = max(0, min(int(raggio_inizio_sfumatura), raggio_esterno))
+    alpha_bordo = max(0, min(int(alpha_bordo), 255))
     maschera = pygame.Surface((raggio_esterno * 2, raggio_esterno * 2), pygame.SRCALPHA)
     centro = (raggio_esterno, raggio_esterno)
     ampiezza = max(1, raggio_esterno - raggio_inizio_sfumatura)
@@ -27,7 +28,7 @@ def crea_maschera_luce_sfumata(raggio_esterno, raggio_inizio_sfumatura):
         if rr <= raggio_inizio_sfumatura:
             alpha = 0
         else:
-            alpha = int(255 * (rr - raggio_inizio_sfumatura) / ampiezza)
+            alpha = int(alpha_bordo * (rr - raggio_inizio_sfumatura) / ampiezza)
         pygame.draw.circle(maschera, (0, 0, 0, alpha), centro, rr)
     return maschera
 
@@ -168,6 +169,7 @@ def main():
     raggio_luce_min = 100  # Raggio minimo del campo visivo
     raggio_luce_max = 400  # Raggio massimo del campo visivo
     percentuale_inizio_sfumatura = 0.6  # La sfumatura parte dal 60% del raggio
+    alpha_buio_massimo = 255  # 255 = nero totale nelle zone lontane
     incremento_raggio = 3  # Incremento lineare del raggio per frame quando si preme E
     luce_mask = None
     ultimo_raggio_mask = None
@@ -716,7 +718,7 @@ def main():
             # --- LUCE DINAMICA ---
             # 1. Creiamo una superficie per l'oscurità (nera e con alpha)
             superficie_oscurita = pygame.Surface((V_LARGHEZZA, V_ALTEZZA), pygame.SRCALPHA)
-            superficie_oscurita.fill((0, 0, 0, 235)) # Il 235 indica quanto è buio (0-255)
+            superficie_oscurita.fill((0, 0, 0, alpha_buio_massimo)) # Nero totale lontano dal player
 
 
             # 2. Calcoliamo la posizione del giocatore sullo schermo virtuale
