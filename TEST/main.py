@@ -61,8 +61,9 @@ def main():
     # Carica le immagini per il gioco
     img_m_statica = carica_immagine(os.path.join(IMG_DIR, "personaggioM.png"), (0, 0, 255))  # Immagine giocatore statica (fallback blu)
     img_minotauro = carica_immagine(os.path.join(IMG_DIR, "minotauro.png"), (200, 0, 0))  # Immagine nemico (fallback rosso)
-    img_ghost = carica_immagine(os.path.join(IMG_DIR, "ghostAnimato.gif"), (400, 0, 0))
+    img_ghost = carica_immagine(os.path.join(IMG_DIR, "ghost.gif"), (400, 0, 0))
     img_drago = carica_immagine(os.path.join(IMG_DIR, "drago.png"), (200, 100, 0))  # Immagine drago
+    img_scheletro_oro = carica_immagine(os.path.join(IMG_DIR, "scheletroOro.png"), (220, 180, 0))  # Immagine scheletro oro
     img_bosco_base = carica_immagine(os.path.join(IMG_DIR, "bosco.png"), (30, 30, 30))  # Immagine sfondo bosco (fallback grigio)
     try:
         # Carica lo sfondo del menu
@@ -544,29 +545,35 @@ def main():
 
 
             if(livello_scelto==livelli_possibili[0]):
-                # Livello 1: solo Minotauro
+                # Livello 1: Minotauro + Ghost
                 pos_iniziale_giocatore = (90, 70)
                 player = giocatore.Giocatore(90, 70, img_m_statica, frames_animati)
                 nemico1 = nemico.Nemico(400, 400, img_minotauro, grid_info)
                 nemico1.start_pos = (400, 400)
                 nemico1.tipo = "MINOTAURO"
-                nemico2 = None
+                nemico2 = nemico.Nemico(500, 300, img_ghost, grid_info)
+                nemico2.start_pos = (500, 300)
+                nemico2.tipo = "GHOST"
             elif(livello_scelto==livelli_possibili[1]):
-                # Livello 2: solo Drago
+                # Livello 2: Ghost + Scheletro Oro
                 pos_iniziale_giocatore = (110, 390)
                 player = giocatore.Giocatore(110, 390, img_m_statica, frames_animati)
-                nemico1 = nemico.Nemico(600, 400, img_drago, grid_info)
-                nemico1.start_pos = (600, 400)
-                nemico1.tipo = "DRAGO"
-                nemico2 = None
+                nemico1 = nemico.Nemico(500, 300, img_ghost, grid_info)
+                nemico1.start_pos = (500, 300)
+                nemico1.tipo = "GHOST"
+                nemico2 = nemico.Nemico(600, 400, img_scheletro_oro, grid_info)
+                nemico2.start_pos = (600, 400)
+                nemico2.tipo = "SCHELETRO_ORO"
             else:
-                # Livello 3: solo Ghost
+                # Livello 3: Ghost + Drago
                 pos_iniziale_giocatore = (440, 580)
                 player = giocatore.Giocatore(440, 580, img_m_statica, frames_animati)
                 nemico1 = nemico.Nemico(500, 300, img_ghost, grid_info)
                 nemico1.start_pos = (500, 300)
                 nemico1.tipo = "GHOST"
-                nemico2 = None
+                nemico2 = nemico.Nemico(600, 400, img_drago, grid_info)
+                nemico2.start_pos = (600, 400)
+                nemico2.tipo = "DRAGO"
             stato_gioco = "IN_GIOCO"  # Inizia il gioco
 
 
