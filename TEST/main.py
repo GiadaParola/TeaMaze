@@ -594,18 +594,6 @@ def main():
 
             raggio_luce = raggio_luce_min + beta_value * (raggio_luce_max - raggio_luce_min)
            
-            # Gestione espansione del campo visivo con tasto E
-            #if keys[pygame.K_e]:
-            #    raggio_luce = min(raggio_luce + incremento_raggio, raggio_luce_max)
-                # Rigenera la maschera di luce quando il raggio cambia
-            #    luce_mask = crea_superficie_luce(raggio_luce)
-           
-            # Gestione rimpicciolimento del campo visivo con tasto R
-            #if keys[pygame.K_r]:
-            #    raggio_luce = max(raggio_luce - incremento_raggio, raggio_luce_min)
-                # Rigenera la maschera di luce quando il raggio cambia
-            #    luce_mask = crea_superficie_luce(raggio_luce)
-           
             # Calcola movimento in base a come muovi la testa
             player.muovi(muri)
             if nemico1:
@@ -628,12 +616,16 @@ def main():
                 nemico_che_ha_colpito = 1
                 risposta_selezionata = None
                 mostra_feedback = False
+                indice_selezionato = 0
+                cooldown_gyro = 0
                 stato_gioco = "DOMANDA_RISPOSTA"
             if nemico2 and player.rect.colliderect(nemico2.rect):
                 domanda_attiva = random.choice(DOMANDE)
                 nemico_che_ha_colpito = 2
                 risposta_selezionata = None
                 mostra_feedback = False
+                indice_selezionato = 0
+                cooldown_gyro = 0
                 stato_gioco = "DOMANDA_RISPOSTA"
 
 
@@ -688,154 +680,131 @@ def main():
             # Disegno finale
             screen.blit(pygame.transform.scale(v_screen, (LARGHEZZA, ALTEZZA)), (0, 0))
        
-        # --- DOMANDA RISPOSTA ---
         elif stato_gioco == "DOMANDA_RISPOSTA":
-            # Disegna il gioco in pausa sullo sfondo
+
+            # ---------------------------
+            # AGGIORNAMENTO GIROSCOPIO
+            # ---------------------------
+            player.gyro.update()
+            gyro = player.gyro.get_xyz()
+
+            if cooldown_gyro > 0:
+                cooldown_gyro -= 1
+
+            # ---------------------------
+            # CONTROLLO TRAMITE TESTA
+            # ---------------------------
+            if not mostra_feedback and cooldown_gyro == 0:
+
+                if gyro["y"] < -player.soglia:
+                    indice_selezionato -= 1
+                    if indice_selezionato < 0:
+                        indice_selezionato = len(domanda_attiva["opzioni"]) - 1
+                    cooldown_gyro = 15
+
+                elif gyro["y"] > player.soglia:
+                    indice_selezionato += 1
+                    if indice_selezionato >= len(domanda_attiva["opzioni"]):
+                        indice_selezionato = 0
+                    cooldown_gyro = 15
+
+                elif gyro["z"] < -player.soglia or gyro["z"] > player.soglia:
+
+                    risposta_selezionata = indice_selezionato
+                    feedback_colore = (
+                        indice_selezionato == domanda_attiva["risposta_corretta"]
+                    )
+
+                    mostra_feedback = True
+                    timer_feedback = 90
+                    cooldown_gyro = 40
+
+                    # -------- LOGICA RISPOSTA --------
+                    if feedback_colore:
+                        if nemico_che_ha_colpito == 1 and nemico1:
+                            nemico1.rect.topleft = (-1000, -1000)
+                        elif nemico_che_ha_colpito == 2 and nemico2:
+                            nemico2.rect.topleft = (-1000, -1000)
+
+                    else:
+                        player.rect.topleft = pos_iniziale_giocatore
+                        enemy_anim_timer = FPS * 2
+                        enemy_anim_index = 0
+
+            # ---------------------------
+            # DISEGNO SFONDO
+            # ---------------------------
             screen.blit(pygame.transform.scale(v_screen, (LARGHEZZA, ALTEZZA)), (0, 0))
-           
-            # Overlay semi-trasparente per evidenziare la finestra
+
             overlay = pygame.Surface((LARGHEZZA, ALTEZZA))
-            overlay.set_alpha(80)  # Più trasparente per vedere la mappa dietro
+            overlay.set_alpha(80)
             overlay.fill((0, 0, 0))
             screen.blit(overlay, (0, 0))
-           
-            # Finestra bianca con la domanda (più piccola)
+
+            # ---------------------------
+            # FINESTRA DOMANDA
+            # ---------------------------
             larghezza_finestra = 650
             altezza_finestra = 400
             x_finestra = LARGHEZZA // 2 - larghezza_finestra // 2
             y_finestra = ALTEZZA // 2 - altezza_finestra // 2
-            pygame.draw.rect(screen, (255, 255, 255), (x_finestra, y_finestra, larghezza_finestra, altezza_finestra))
-            pygame.draw.rect(screen, (0, 0, 0), (x_finestra, y_finestra, larghezza_finestra, altezza_finestra), 3)
-           
-            # Testo della domanda
+
+            pygame.draw.rect(screen, (255, 255, 255),
+                            (x_finestra, y_finestra, larghezza_finestra, altezza_finestra))
+            pygame.draw.rect(screen, (0, 0, 0),
+                            (x_finestra, y_finestra, larghezza_finestra, altezza_finestra), 3)
+
+            # Testo domanda
             font_domanda = pygame.font.SysFont("Arial", 24, bold=True)
             txt_domanda = font_domanda.render(domanda_attiva["testo"], True, (0, 0, 0))
             screen.blit(txt_domanda, (x_finestra + 30, y_finestra + 20))
-           
-            # Opzioni a risposta multipla
+
+            # ---------------------------
+            # OPZIONI
+            # ---------------------------
             font_opzioni = pygame.font.SysFont("Arial", 18)
             lettere = ['A', 'B', 'C', 'D']
-            rect_opzioni = []
-           
+
             for i, opzione in enumerate(domanda_attiva["opzioni"]):
+
                 y_opzione = y_finestra + 100 + i * 60
                 x_opzione = x_finestra + 30
-                larghezza_opzione = larghezza_finestra - 60
-                altezza_opzione = 50
-               
-                rect_opt = pygame.Rect(x_opzione, y_opzione, larghezza_opzione, altezza_opzione)
-                rect_opzioni.append(rect_opt)
-               
-                # Colore dell'opzione
+                rect_opt = pygame.Rect(x_opzione, y_opzione,
+                                    larghezza_finestra - 60, 50)
+
                 if mostra_feedback:
                     if i == domanda_attiva["risposta_corretta"]:
-                        colore = (0, 200, 0)  # Verde per la risposta giusta
+                        colore = (0, 200, 0)
                     elif i == risposta_selezionata:
-                        colore = (200, 0, 0)  # Rosso per la risposta sbagliata selezionata
+                        colore = (200, 0, 0)
                     else:
                         colore = (200, 200, 200)
                 else:
-                    colore = (200, 200, 200)
-               
+                    if i == indice_selezionato:
+                        colore = (255, 255, 150)
+                    else:
+                        colore = (200, 200, 200)
+
                 pygame.draw.rect(screen, colore, rect_opt)
                 pygame.draw.rect(screen, (0, 0, 0), rect_opt, 2)
-               
-                # Testo opzione
+
                 txt_lettera = font_opzioni.render(f"{lettere[i]})", True, (0, 0, 0))
                 txt_opzione = font_opzioni.render(opzione, True, (0, 0, 0))
+
                 screen.blit(txt_lettera, (x_opzione + 15, y_opzione + 10))
                 screen.blit(txt_opzione, (x_opzione + 60, y_opzione + 10))
-           
-            # Gestione click su opzioni
-            for e in event:
-                if e.type == pygame.MOUSEBUTTONDOWN and not mostra_feedback:
-                    for i, rect_opt in enumerate(rect_opzioni):
-                        if rect_opt.collidepoint(e.pos):
-                            risposta_selezionata = i
-                            feedback_colore = (i == domanda_attiva["risposta_corretta"])
-                            mostra_feedback = True
-                            timer_feedback = 90  # 1.5 secondi a 60 FPS
-           
-            # Se il feedback è mostrato, decrementa il timer
+
+            # ---------------------------
+            # TIMER FEEDBACK
+            # ---------------------------
             if mostra_feedback:
                 timer_feedback -= 1
-               
-                if timer_feedback == 89:  # Immediatamente dopo la selezione
-                    if feedback_colore:  # Risposta giusta
-                        # Rimuovi il nemico che ha colpito (spostalo fuori dalla mappa)
-                        if nemico_che_ha_colpito == 1:
-                            nemico1.rect.topleft = (-1000, -1000)
-                        elif nemico_che_ha_colpito == 2:
-                            nemico2.rect.topleft = (-1000, -1000)
-                    else:  # Risposta sbagliata
-                        # Riporta il giocatore all'inizio
-                        player.rect.topleft = pos_iniziale_giocatore
-                        # Avvia animazione del nemico colpito per 2 secondi
-                        # e poi riportalo al punto di partenza
-                        enemy_anim_timer = FPS * 2
-                        enemy_anim_index = 0
-                        if nemico_che_ha_colpito == 1 and nemico1:
-                            if getattr(nemico1, 'tipo', '') == 'DRAGO':
-                                enemy_anim_frames = anim_drago_fuoco or []
-                            elif getattr(nemico1, 'tipo', '') == 'MINOTAURO':
-                                enemy_anim_frames = anim_minotauro_sbuffa or []
-                            else:
-                                enemy_anim_frames = []
-                            enemy_anim_owner = 1
-                        elif nemico_che_ha_colpito == 2 and nemico2:
-                            if getattr(nemico2, 'tipo', '') == 'DRAGO':
-                                enemy_anim_frames = anim_drago_fuoco or []
-                            elif getattr(nemico2, 'tipo', '') == 'MINOTAURO':
-                                enemy_anim_frames = anim_minotauro_sbuffa or []
-                            else:
-                                enemy_anim_frames = []
-                            enemy_anim_owner = 2
-               
-                # Torna al gioco dopo il timer
                 if timer_feedback <= 0:
                     stato_gioco = "IN_GIOCO"
                     mostra_feedback = False
                     timer_feedback = 0
 
 
-            # --- Animazione nemico da mostrare durante il feedback (es. sbuffo/drago_fuoco) ---
-            if enemy_anim_timer > 0:
-                enemy_anim_timer -= 1
-                enemy_anim_index += 1
-                if enemy_anim_frames:
-                    # scegli frame
-                    idx = (enemy_anim_index // enemy_anim_frame_hold) % len(enemy_anim_frames)
-                    frame = enemy_anim_frames[idx]
-                    # calcola posizione sullo schermo (scala da v_screen -> screen)
-                    try:
-                        scale = LARGHEZZA / V_LARGHEZZA
-                        # usa il nemico owner per prendere la rect corretta
-                        if enemy_anim_owner == 1 and nemico1:
-                            sx = int((nemico1.rect.x - cam_x) * scale)
-                            sy = int((nemico1.rect.y - cam_y) * scale)
-                            screen.blit(frame, (sx, sy))
-                        elif enemy_anim_owner == 2 and nemico2:
-                            sx = int((nemico2.rect.x - cam_x) * scale)
-                            sy = int((nemico2.rect.y - cam_y) * scale)
-                            screen.blit(frame, (sx, sy))
-                    except Exception:
-                        pass
-
-
-                # quando finisce il timer, riporta il nemico al punto di partenza
-                if enemy_anim_timer <= 0:
-                    if enemy_anim_owner == 1 and nemico1 and hasattr(nemico1, 'start_pos'):
-                        nemico1.rect.center = nemico1.start_pos
-                        # pulisci eventuale path per evitare movimenti strani
-                        nemico1.path = []
-                        nemico1.target = None
-                    if enemy_anim_owner == 2 and nemico2 and hasattr(nemico2, 'start_pos'):
-                        nemico2.rect.center = nemico2.start_pos
-                        nemico2.path = []
-                        nemico2.target = None
-                    enemy_anim_owner = None
-                    enemy_anim_frames = []
-                    enemy_anim_index = 0
         
         # --- IMPOSTAZIONI ---
         elif stato_gioco == "IMPOSTAZIONI":
