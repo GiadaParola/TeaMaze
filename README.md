@@ -12,7 +12,9 @@ The video game consists of finding the exit from a maze. By answering questions 
 Our group is composed of four members: Giada Parola, Marco Barbieri, Emanuele Fantino and Sheick Traore.
 <br>
 At first we choose the project menager, Giada Parola, and then she assigned roles to the team members:
-* Emanuele Fantino and Sheick Traore 
+* Emanuele Fantino and Sheick Traore wrote the code for graphics management and game dynamics;
+* Marco Barbieri personally designed the graphics for the characters and maps;
+* Giada Parola managed the data provided by Muse2 to ensure it worked for our game. 
 
 # ISTRUCTION FOR USE
 * It is advisable to use Windows or MacOS as it is not guaranteed the presence of all third-party software on Linux
