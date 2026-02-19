@@ -590,7 +590,7 @@ def main():
 
             player.eeg.update()
             eeg = player.eeg.get_band_powers()
-            bata_value = eeg.get('Beta', 0)
+            beta_value = eeg.get('Beta', 0)
 
             raggio_luce = raggio_luce_min + beta_value * (raggio_luce_max - raggio_luce_min)
            
@@ -685,27 +685,6 @@ def main():
 
 
             # --- INTERFACCIA (UI) ---
-            # Mostriamo il valore del raggio in un angolo
-            #txt_raggio = font.render(f"Raggio Luce: {raggio_luce}", True, (255, 255, 255))
-            #v_screen.blit(txt_raggio, (10, 10))
-            oscurita = pygame.Surface((V_LARGHEZZA, V_ALTEZZA), pygame.SRCALPHA)
-            oscurita.fill((0, 0, 0, 250)) # 250 è quasi nero totale
-
-
-            # 2. Calcoliamo dove si trova il giocatore sullo schermo
-            pos_x = player.rect.centerx - cam_x - raggio_luce
-            pos_y = player.rect.centery - cam_y - raggio_luce
-
-
-            # 3. Usiamo il metodo BLEND_RGBA_MIN per "sottrarre" l'oscurità
-            # Questo crea l'effetto dissolvenza tra luce e buio
-            oscurita.blit(luce_mask, (pos_x, pos_y), special_flags=pygame.BLEND_RGBA_MIN)
-
-
-            # 4. Applichiamo l'oscurità finale sullo schermo virtuale
-            v_screen.blit(oscurita, (0, 0))
-
-
             # Disegno finale
             screen.blit(pygame.transform.scale(v_screen, (LARGHEZZA, ALTEZZA)), (0, 0))
        
