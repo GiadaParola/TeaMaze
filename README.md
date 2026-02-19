@@ -14,7 +14,7 @@ Our group is composed of four members: Giada Parola, Marco Barbieri, Emanuele Fa
 At first we choose the project menager, Giada Parola, and then she assigned roles to the team members:
 * Emanuele Fantino and Sheick Traore wrote the code for all the graphics management and game dynamics;
 * Marco Barbieri personally designed the graphics for the characters and maps;
-* Giada Parola wrote the code that manages the data provided by Muse2 to enable movement and dynamic lighting based on the player's concentration and head movements.  
+* Giada Parola wrote the code that manages the data provided by Muse2<!-- to enable movement and dynamic lighting based on the player's concentration and head movements-->.  
 
 # ISTRUCTION FOR USE
 * It is advisable to use Windows or MacOS as it is not guaranteed the presence of all third-party software on Linux
