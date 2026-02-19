@@ -9,10 +9,27 @@ import os
 # Importa moduli locali
 import giocatore    
 import nemico
-from utilita import carica_immagine, estrai_frames_gif, crea_superficie_luce
+from utilita import carica_immagine, estrai_frames_gif
 from costanti import *
 from domande import DOMANDE
    
+
+
+def crea_maschera_luce_sfumata(raggio_esterno, raggio_inizio_sfumatura):
+    """Maschera radiale: trasparente vicino al player, poi sfuma fino al nero."""
+    raggio_esterno = max(1, int(raggio_esterno))
+    raggio_inizio_sfumatura = max(0, min(int(raggio_inizio_sfumatura), raggio_esterno))
+    maschera = pygame.Surface((raggio_esterno * 2, raggio_esterno * 2), pygame.SRCALPHA)
+    centro = (raggio_esterno, raggio_esterno)
+    ampiezza = max(1, raggio_esterno - raggio_inizio_sfumatura)
+
+    for rr in range(raggio_esterno, 0, -1):
+        if rr <= raggio_inizio_sfumatura:
+            alpha = 0
+        else:
+            alpha = int(255 * (rr - raggio_inizio_sfumatura) / ampiezza)
+        pygame.draw.circle(maschera, (0, 0, 0, alpha), centro, rr)
+    return maschera
 
 
 def main():
@@ -150,8 +167,11 @@ def main():
     raggio_luce = 200
     raggio_luce_min = 100  # Raggio minimo del campo visivo
     raggio_luce_max = 400  # Raggio massimo del campo visivo
+    percentuale_inizio_sfumatura = 0.6  # La sfumatura parte dal 60% del raggio
     incremento_raggio = 3  # Incremento lineare del raggio per frame quando si preme E
-    luce_mask = crea_superficie_luce(raggio_luce)
+    luce_mask = None
+    ultimo_raggio_mask = None
+    ultimo_raggio_inizio = None
    
     # Sistema di domande e risposte (importato da domande.py)
     domanda_attiva = None  # Domanda corrente
@@ -681,10 +701,18 @@ def main():
             screen.blit(pygame.transform.scale(v_screen, (LARGHEZZA, ALTEZZA)), (0,0))
             variazione = random.randint(-5, 5) # Piccola variazione casuale
             raggio_dinamico = raggio_luce + variazione
-           
-            # Se vuoi bordi ancora più morbidi, rigenera la maschera ogni tanto
-            # o scalamela leggermente:
-            luce_scalata = pygame.transform.scale(luce_mask, (raggio_dinamico*2, raggio_dinamico*2))
+            raggio_dinamico = max(1, int(raggio_dinamico))
+            raggio_inizio_sfumatura = int(raggio_dinamico * percentuale_inizio_sfumatura)
+
+            # Rigenera la maschera solo quando il raggio cambia.
+            if (
+                luce_mask is None
+                or ultimo_raggio_mask != raggio_dinamico
+                or ultimo_raggio_inizio != raggio_inizio_sfumatura
+            ):
+                luce_mask = crea_maschera_luce_sfumata(raggio_dinamico, raggio_inizio_sfumatura)
+                ultimo_raggio_mask = raggio_dinamico
+                ultimo_raggio_inizio = raggio_inizio_sfumatura
             # --- LUCE DINAMICA ---
             # 1. Creiamo una superficie per l'oscurità (nera e con alpha)
             superficie_oscurita = pygame.Surface((V_LARGHEZZA, V_ALTEZZA), pygame.SRCALPHA)
@@ -699,8 +727,8 @@ def main():
 
             # 3. Applichiamo la maschera di luce con sfumatura dolce
             # Usiamo la maschera scalata per creare un'ombra sfumata attorno al personaggio
-            luce_rect = luce_scalata.get_rect(center=(pos_schermo_x, pos_schermo_y))
-            superficie_oscurita.blit(luce_scalata, luce_rect, special_flags=pygame.BLEND_MULT)
+            luce_rect = luce_mask.get_rect(center=(pos_schermo_x, pos_schermo_y))
+            superficie_oscurita.blit(luce_mask, luce_rect, special_flags=pygame.BLEND_MULT)
 
 
             # 4. Applichiamo l'oscurità sulla virtual_screen

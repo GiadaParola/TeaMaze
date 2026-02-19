@@ -31,12 +31,23 @@ def estrai_frames_gif(percorso, larghezza_desiderata):
     return frames
 
 
-def crea_superficie_luce(raggio):
-    """Crea una superficie circolare con sfumatura dolce per l'effetto luce"""
+def crea_superficie_luce(raggio, raggio_inizio_sfumatura=None):
+    """Crea una maschera luce: zona centrale libera e sfumatura fino al nero pieno."""
+    raggio = max(1, int(raggio))
+    if raggio_inizio_sfumatura is None:
+        raggio_inizio_sfumatura = int(raggio * 0.6)
+    raggio_inizio_sfumatura = max(0, min(int(raggio_inizio_sfumatura), raggio))
+
     superficie = pygame.Surface((raggio * 2, raggio * 2), pygame.SRCALPHA)
-    # Crea un gradiente: centro trasparente, bordi scuri (ombra sfumata)
-    for r in range(raggio, 0, -1):
-        # Alpha a 0 nel centro, alpha a 255 ai bordi
-        alpha = int(255 * ((raggio - r) / raggio)) 
-        pygame.draw.circle(superficie, (0, 0, 0, alpha), (raggio, raggio), r)
+    cx, cy = raggio, raggio
+
+    # Dal centro fino a raggio_inizio_sfumatura non c'e oscurita' (alpha 0),
+    # poi la sfumatura cresce fino a 255 al bordo esterno.
+    for rr in range(raggio, 0, -1):
+        if rr <= raggio_inizio_sfumatura:
+            alpha = 0
+        else:
+            ampiezza = max(1, raggio - raggio_inizio_sfumatura)
+            alpha = int(255 * (rr - raggio_inizio_sfumatura) / ampiezza)
+        pygame.draw.circle(superficie, (0, 0, 0, alpha), (cx, cy), rr)
     return superficie
