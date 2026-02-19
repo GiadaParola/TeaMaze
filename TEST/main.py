@@ -349,7 +349,7 @@ def main():
                         btn_select.centery - txt_sel.get_height() // 2))
 
             # Gestione input mouse
-            for e in pygame.event.get():
+            for e in event:
                 if e.type == pygame.MOUSEBUTTONDOWN:
                     if btn_sx.collidepoint(e.pos):
                         indice_personaggio = (indice_personaggio - 1) % len(personaggi)
@@ -448,7 +448,7 @@ def main():
             # =============================
             # GESTIONE CLICK
             # =============================
-            for e in pygame.event.get():
+            for e in event:
                 if e.type == pygame.MOUSEBUTTONDOWN:
                     for i, r in enumerate(rects):
                         if r.collidepoint(e.pos):
@@ -945,9 +945,8 @@ def main():
                 "Raggiungi l'uscita del labirinto evitando i nemici.",
                 "",
                 "CONTROLLI:",
-                "- Usa le frecce direzionali per muoverti",
-                "- Premi E per aumentare il campo visivo",
-                "- Premi R per diminuire il campo visivo",
+                "- Muovi la testa nella direzione in cui desideri far andare il personaggio",
+                "- Concentrati per muovere il personaggio in quella direzione",
                 "",
                 "NEMICI:",
                 "Se un nemico ti cattura, dovrai rispondere a una domanda.",
@@ -988,7 +987,7 @@ def main():
         # STATO: Vittoria
         elif stato_gioco == "VITTORIA":
             screen.fill((0, 80, 0))  # Sfondo verde scuro
-            txt = font.render("SEI FUGGITO!", True, (255, 255, 255))  # Testo vittoria bianco
+            txt = font.render("SEI FUGGITO!!!!!", True, (255, 255, 255))  # Testo vittoria bianco
             screen.blit(txt, (LARGHEZZA//2 - txt.get_width()//2, ALTEZZA//2 - 50))  # Disegna testo centrato
             for e in event:  # Controlla input
                 if e.type == pygame.KEYDOWN and e.key == pygame.K_SPACE: stato_gioco = "MENU_PRINCIPALE"  # SPAZIO = ritorna al menu
