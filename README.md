@@ -11,7 +11,7 @@ The video game consists of finding the exit from a maze. By answering questions 
 # OUR TEAM
 Our group is composed of four members: Giada Parola, Marco Barbieri, Emanuele Fantino and Sheick Traore.
 <br>
-At firt we choose the project menager, Giada Parola, and then she assigned roles to the team members:
+At first we choose the project menager, Giada Parola, and then she assigned roles to the team members:
 * Emanuele Fantino and Sheick Traore 
 
 # ISTRUCTION FOR USE
