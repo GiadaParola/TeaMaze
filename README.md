@@ -4,7 +4,7 @@ The project we have developed aims to facilitate the rehabilitation of patients 
 2. `Reduction in the perception of fatigue` The physical exercises necessary to maintain strength, mobility, and coordination can be tiring, especially for patients with ALS, who experience progressive muscle weakness. Exergames partially mask fatigue, as the patient's focus is not only on performing the exercise, but also on the goal of the game and having fun.
 3. `Cognitive and sensory involvement` Video games can stimulate not only movement, but also hand-eye coordination, spatial perception, and cognitive function. This integrated approach promotes more comprehensive training that goes beyond simple muscular activity.
 4. `Reducing the psychological burden of illness` Playful experiences can have a positive effect on patients' emotional and psychological well-being. They transform rehabilitation from a mandatory medical task into an enjoyable experience, helping to reduce the emotional fatigue and anxiety associated with illness.
-5. `Customization and monitoring` Thanks to the system developed, it is possible to adapt the exercises and level of difficulty based on the patient's abilities, ensuring safe and personalized training, with the ability to monitor progress over time.<br>
+5. `Customization and monitoring` Thanks to the system developed, it is possible to adapt the exercises and level of difficulty based on the patient's abilities, ensuring safe and personalized training, with the ability to monitor progress over time by saving concentration data to a CSV file.<br>
 <br>
 The video game consists of finding the exit from a maze. By answering questions correctly, players can continue on their way to the end; otherwise, they will be taken back to the beginning. Players can choose between two characters, a boy and a girl. They can also choose between three levels with different degrees of difficulty. Along the way, they may encounter monsters that ask a question, which can be answered by choosing from four possible answers. To move the characters, we used Muse2, equipped with a gyroscope to change direction (forward, backward, right, and left). To move forward in the desired direction, Muse2 must detect a certain level of concentration.
 
@@ -12,9 +12,9 @@ The video game consists of finding the exit from a maze. By answering questions 
 Our group is composed of four members: Giada Parola, Marco Barbieri, Emanuele Fantino and Sheick Traore.
 <br>
 At first we choose the project menager, Giada Parola, and then she assigned roles to the team members:
-* Emanuele Fantino and Sheick Traore wrote the code for graphics management and game dynamics;
+* Emanuele Fantino and Sheick Traore wrote the code for all the graphics management and game dynamics;
 * Marco Barbieri personally designed the graphics for the characters and maps;
-* Giada Parola managed the data provided by Muse2 to ensure it worked for our game. 
+* Giada Parola wrote the code that manages the data provided by Muse2 to enable movement and dynamic lighting based on the player's concentration and head movements.  
 
 # ISTRUCTION FOR USE
 * It is advisable to use Windows or MacOS as it is not guaranteed the presence of all third-party software on Linux
