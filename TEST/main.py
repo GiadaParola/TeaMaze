@@ -552,20 +552,20 @@ def main():
                 nemico1.tipo = "MINOTAURO"
                 nemico2 = None
             elif(livello_scelto==livelli_possibili[1]):
-                # Livello 2: solo Ghost
-                pos_iniziale_giocatore = (60, 390)
-                player = giocatore.Giocatore(60, 390, img_m_statica, frames_animati)
+                # Livello 2: solo Drago
+                pos_iniziale_giocatore = (110, 390)
+                player = giocatore.Giocatore(110, 390, img_m_statica, frames_animati)
                 nemico1 = nemico.Nemico(600, 400, img_drago, grid_info)
                 nemico1.start_pos = (600, 400)
-                nemico1.tipo = "GHOST"
+                nemico1.tipo = "DRAGO"
                 nemico2 = None
             else:
-                # Livello 3: solo Drago
+                # Livello 3: solo Ghost
                 pos_iniziale_giocatore = (440, 580)
                 player = giocatore.Giocatore(440, 580, img_m_statica, frames_animati)
                 nemico1 = nemico.Nemico(500, 300, img_ghost, grid_info)
                 nemico1.start_pos = (500, 300)
-                nemico1.tipo = "DRAGO"
+                nemico1.tipo = "GHOST"
                 nemico2 = None
             stato_gioco = "IN_GIOCO"  # Inizia il gioco
 
