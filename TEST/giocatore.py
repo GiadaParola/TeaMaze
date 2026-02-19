@@ -55,7 +55,7 @@ class Giocatore:
         print(f"GYRO: {gyro_mean}")
         if gyro_mean["y"] > self.soglia: #giu
             self.direzione = 0
-        elif gyro_mean["y"] < -self.soglia: #su
+        elif gyro_mean["y"] < -self.soglia: #UP
             self.direzione = 2
         elif gyro_mean["z"] > self.soglia: #sx
             self.direzione = 1
