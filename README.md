@@ -40,4 +40,5 @@ After you have to run `TEST/main.py` in the terminal, and wait that the process 
 For more information visit our website: http://698af0ee55e2f.site123.me
 
 # VIDEO
-![Video TeaMaze](TEST/video/TeaMaze.mp4)
+<video src="[video/TeaMaze.mp4](https://github.com/GiadaParola/TeaMaze/blob/main/video/TeaMaze.mp4)" controls="controls" width="600" height="400">
+</video>
