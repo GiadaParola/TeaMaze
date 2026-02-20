@@ -35,3 +35,7 @@ At first we choose the project menager, Giada Parola, and then she assigned role
 You must connect the Muse2 via Bluetooth using his own program.<br>
 <br>
 After you have to run `TEST/main.py` in the terminal, and wait that the process starts.
+
+# WEBSITE
+
+For more information visit our website: http://698af0ee55e2f.site123.me
