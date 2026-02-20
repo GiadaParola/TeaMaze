@@ -3,10 +3,8 @@ from pylsl import StreamInlet, resolve_byprop
 import sys
 
 class Muse:
-    """
-    Classe base generica per stream Muse via LSL.
-    EEG, Gyro, Accelerometro possono ereditarla.
-    """
+    # Classe base generica per stream Muse via LSL.
+    # EEG, Gyro, Accelerometro possono ereditarla.
 
     class RingBuffer:
         def __init__(self, max_samples, n_channels):
@@ -65,10 +63,9 @@ class Muse:
     # --------------------------------------------------
 
     def update(self):
-        """
-        Legge un campione dallo stream.
-        Se non connesso → simula dati.
-        """
+        # Legge un campione dallo stream.
+        # Se non connesso → simula dati.
+        
         if not self.inlet:
             sample = np.random.randn(self.n_channels)
             self.buffer.append(sample.reshape(1, self.n_channels))
@@ -83,20 +80,20 @@ class Muse:
     # --------------------------------------------------
 
     def get_data(self):
-        """Restituisce tutto il buffer corrente"""
+        # Restituisce tutto il buffer corrente
         return self.buffer.get()
 
     # --------------------------------------------------
 
     def get_latest(self):
-        """Restituisce l’ultimo campione"""
+        # Restituisce l’ultimo campione
         data = self.buffer.get()
         if len(data) == 0:
             return np.zeros(self.n_channels)
         return data[-1]
 
     def clear_buffer(self):
-        """Svuota il buffer."""
+        # Svuota il buffer
         self.buffer.data[:] = 0          # azzera tutti i dati
         self.buffer.write_pos = 0        # resetta la posizione di scrittura
         self.buffer.full = False         # indica che il buffer non è pieno

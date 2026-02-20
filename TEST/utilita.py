@@ -4,7 +4,7 @@ from PIL import Image
 
 
 def carica_immagine(nome, colore_fallback):
-    """Carica un'immagine, se fallisce crea una superficie di colore"""  
+    # Carica un'immagine, se fallisce crea una superficie di colore
     try:
         return pygame.image.load(nome).convert_alpha()
     except:
@@ -14,7 +14,7 @@ def carica_immagine(nome, colore_fallback):
 
 
 def estrai_frames_gif(percorso, larghezza_desiderata):
-    """Estrae tutti i frame da una GIF e li ridimensiona"""
+    # Estrae tutti i frame da una GIF e li ridimensiona
     frames = []
     try:
         with Image.open(percorso) as img:
@@ -32,7 +32,7 @@ def estrai_frames_gif(percorso, larghezza_desiderata):
 
 
 def crea_superficie_luce(raggio):
-    """Crea una superficie circolare per l'effetto luce"""
+    # Crea una superficie circolare per l'effetto luce
     superficie = pygame.Surface((raggio * 2, raggio * 2), pygame.SRCALPHA)
     for r in range(raggio, 0, -1):
         alpha = int(255 * (r / raggio)) 

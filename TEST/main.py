@@ -17,7 +17,7 @@ from museGYRO import MuseGYRO
 
 
 def main():
-    """Funzione principale del gioco"""
+    # Funzione principale del gioco
     pygame.init()  # Inizializza la libreria pygame
     # Inizializza il mixer audio (se possibile)
     try:

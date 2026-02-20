@@ -4,9 +4,9 @@ from museEEG import MuseEEG
 from museGYRO import MuseGYRO
 
 class Giocatore:
-    """Classe che rappresenta il giocatore controllabile"""
+    # Classe che rappresenta il giocatore controllabile
     def __init__(self, x, y, img_statica, frames_animati=None):
-        """Inizializza il giocatore con posizione e immagini"""
+        # Inizializza il giocatore con posizione e immagini
         self.frames = frames_animati  # Memorizza i frame animati
         self.img_fermo = self.frames[0] if frames_animati else pygame.transform.scale(img_statica, (28, 28))  # Immagine quando fermo
         self.image = self.img_fermo  # Immagine attuale da disegnare
@@ -36,7 +36,7 @@ class Giocatore:
 
 
     def muovi(self,gyro_mean,  muri):
-        """Muove il giocatore controllato da EEG Beta e tastiera"""
+        # Muove il giocatore controllato da EEG Beta e tastiera
 
         # --- Aggiorna buffer EEG ---
         self.eeg.update()
@@ -91,7 +91,7 @@ class Giocatore:
                     self.rect.top = m.bottom
 
     def aggiorna(self):
-        """Aggiorna l'animazione del giocatore"""
+        # Aggiorna l'animazione del giocatore
         # Se i frame sono stati cambiati, reset dell'indice
         if self.frames != self.ultimo_frames:
             self.index_frame = 0
@@ -107,7 +107,7 @@ class Giocatore:
             self.image = self.img_fermo  # Se fermo, usa immagine statica
 
     def draw(self, surface, camera_pos):
-        """Disegna il giocatore sulla screen corretta per la camera"""
+        # Disegna il giocatore sulla screen corretta per la camera
         self.aggiorna()  # Aggiorna stato animazione
         # Disegna l'immagine centrata sul rect di collisione fisso
         img_rect = self.image.get_rect(center=self.rect.center)

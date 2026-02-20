@@ -1,4 +1,4 @@
-"""Sistema di domande a risposta multipla"""
+# Sistema di domande a risposta multipla
 
 DOMANDE = [
     {
