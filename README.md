@@ -37,5 +37,7 @@ You must connect the Muse2 via Bluetooth using his own program.<br>
 After you have to run `TEST/main.py` in the terminal, and wait that the process starts.
 
 # WEBSITE
-
 For more information visit our website: http://698af0ee55e2f.site123.me
+
+# VIDEO
+![Video TeaMaze](TEST/video/TeaMaze.mp4)
