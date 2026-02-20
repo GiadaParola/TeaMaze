@@ -12,6 +12,7 @@ import nemico
 from utilita import carica_immagine, estrai_frames_gif, crea_superficie_luce
 from costanti import *
 from domande import DOMANDE
+from museGYRO import MuseGYRO
    
 
 
@@ -51,6 +52,29 @@ def main():
         except Exception:
             # Se il file non esiste o mixer non inizializzato, ignoriamo
             current_music = None
+
+    def scrivi_testo_descrizione(stato_gioco):
+        font_descrizione = pygame.font.SysFont("Arial", 22, italic=True)
+        descr_text = descrizioni_stati[stato_gioco]
+        txt_descrizione = font_descrizione.render(descr_text, True, (220, 220, 220))
+        # Posizione centrale orizzontale e verticale a 250px (puoi cambiare)
+        x_text = larghezza_attuale // 2 - txt_descrizione.get_width() // 2
+        y_text = altezza_attuale - 150
+        # Rettangolo ombra sotto la scritta
+        padding_x = 10  # spazio orizzontale attorno al testo
+        padding_y = 5   # spazio verticale attorno al testo
+        rect_ombra = pygame.Rect(
+            x_text - padding_x,
+            y_text - padding_y,
+            txt_descrizione.get_width() + 2 * padding_x,
+            txt_descrizione.get_height() + 2 * padding_y
+        )
+        # Superficie trasparente per l'ombra
+        ombra_surface = pygame.Surface((rect_ombra.width, rect_ombra.height), pygame.SRCALPHA)
+        ombra_surface.fill((0, 0, 0, 100))  # nero semi-trasparente (alpha 100/255)
+        screen.blit(ombra_surface, (rect_ombra.x, rect_ombra.y))
+        # Disegno del testo sopra il rettangolo
+        screen.blit(txt_descrizione, (x_text, y_text))
    
     screen = pygame.display.set_mode((LARGHEZZA, ALTEZZA))  # Crea finestra principale 1920x1080
     v_screen = pygame.Surface((V_LARGHEZZA, V_ALTEZZA))  # Superficie virtuale per il rendering (960x540)
@@ -91,6 +115,15 @@ def main():
         # Fallback se l'immagine manca
         img_seleziona_personaggio = pygame.Surface((LARGHEZZA, ALTEZZA))
         img_seleziona_personaggio.fill((20, 20, 20))
+
+    try:
+        # Carica lo sfondo della vittoria
+        img_vittoria = pygame.image.load(os.path.join(IMG_DIR, "sfondoVittoria.webp")).convert()
+        img_vittoria = pygame.transform.scale(img_vittoria, (LARGHEZZA, ALTEZZA))
+    except:
+        # Fallback se l'immagine manca
+        img_vittoria = pygame.Surface((LARGHEZZA, ALTEZZA))
+        img_vittoria.fill((20, 20, 20))
 
 
     preview1 = carica_immagine(os.path.join(IMG_DIR, "imgMappe", "mappa1.png"), (80, 80, 80))
@@ -194,88 +227,165 @@ def main():
             "frames": estrai_frames_gif(os.path.join(IMG_DIR, "personaggioFAnimato.gif"), 200)
         }
     ]
+
+    # DESCRIZIONE DI COSA BISOGNA FARE IN CIASCUNO STATO
+    descrizioni_stati = {
+        "MENU_PRINCIPALE": "Muovi la testa su/giù per navigare nel menu e conferma con destra/sinistra.",
+        "SELEZIONE_PERSONAGGIO": "Muovi la testa a destra/sinistra per cambiare personaggio, su/giù per confermare.",
+        "SELEZIONE_LIVELLO": "Muovi la testa a destra/sinistra per selezionare un livello, su/giù per confermare.",
+        "IN_GIOCO": "Muovi la testa nella direzione desiderata per muovere il personaggio.",
+        "DOMANDA_RISPOSTA": "Muovi la testa su/giù per selezionare la risposta, destra/sinistra per confermare.",
+        "IMPOSTAZIONI": "Muovi la testa su/giù per selezionare voce, destra/sinistra per modificare o confermare.",
+        "ISTRUZIONI": "Muovi la testa in qualunque direzione per tornare alle impostazioni.",
+        "VITTORIA": "Muovi la testa in qualunque direzione per tornare al menù principale.",
+    }
+
+    
+    cooldown_gyro = 0
+    indice_menu = 0
+    voci_menu = ["GIOCA", "IMPOSTAZIONI", "USCITA"]
     indice_personaggio = 0          # Indice del personaggio mostrato nel menu
     indice_frame_personaggio = 0    # Indice del frame GIF nel menu
+    indice_livello = 0
+    indice_impostazioni = 0
+    sogliaGYRO = 180
+    gyro = MuseGYRO()
+    if gyro.connect():
+        print("Muse GYRO pronto")
+    else:
+        print("Muse GYRO non trovato, useremo valori simulati")
+
     # Loop principale del gioco
     while True:
         event = pygame.event.get()
         mouse_pos = pygame.mouse.get_pos()
-        # Cambia la traccia se lo stato è cambiato
-        if stato_gioco != prev_state:
-            if stato_gioco == "MENU_PRINCIPALE":
-                play_music(MUSIC_FILES.get("MENU"))
-            elif stato_gioco == "IN_GIOCO":
-                # Scegli la musica in base al livello selezionato
-                try:
-                    if livello_scelto == livelli_possibili[0]:
-                        play_music(MUSIC_FILES.get("LIVELLO1"))
-                    elif livello_scelto == livelli_possibili[1]:
-                        play_music(MUSIC_FILES.get("LIVELLO2"))
-                    else:
-                        play_music(MUSIC_FILES.get("LIVELLO3"))
-                except Exception:
-                    pass
-            # aggiorna lo stato precedente
-            prev_state = stato_gioco
-       
-        for e in event:
-            if e.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if e.type == pygame.KEYDOWN and e.key == pygame.K_ESCAPE:
-                stato_gioco = "MENU_PRINCIPALE"
-
-
-        # STATO: Menu principale
+        # --- MENU PRINCIPALE ---
         if stato_gioco == "MENU_PRINCIPALE":
-            # CREA I PULSANTI QUI OGNI VOLTA
+            #MUSICA
+            play_music(MUSIC_FILES["MENU"])
+
+            # AGGIORNAMENTO GIRO
+            gyro.update()
+            gyro_value = gyro.get_xyz()
+
+            if cooldown_gyro > 0:
+                cooldown_gyro -= 1
+
+            # CONTROLLO TESTA
+            if cooldown_gyro == 0:
+
+                # SU
+                if gyro_value["y"] < -sogliaGYRO:
+                    indice_menu -= 1
+                    if indice_menu < 0:
+                        indice_menu = len(voci_menu) - 1
+                    cooldown_gyro = 15
+
+                # GIÙ
+                elif gyro_value["y"] > sogliaGYRO:
+                    indice_menu += 1
+                    if indice_menu >= len(voci_menu):
+                        indice_menu = 0
+                    cooldown_gyro = 15
+
+                # CONFERMA con movimento testa
+                elif gyro_value["z"] < -sogliaGYRO or gyro_value["z"] > sogliaGYRO:
+                    cooldown_gyro = 40
+                    if indice_menu == 0:
+                        stato_gioco = "SELEZIONE_PERSONAGGIO"
+                        indice_menu = 0
+                    elif indice_menu == 1:
+                        stato_gioco = "IMPOSTAZIONI"
+                        indice_menu = 0
+                    elif indice_menu == 2:
+                        pygame.quit()
+                        sys.exit()
+
+            # DISEGNO MENU
             larghezza_btn, altezza_btn = 350, 80
             cx = larghezza_attuale // 2 - larghezza_btn // 2
+
             rect_gioca = pygame.Rect(cx, altezza_attuale // 2 + 50, larghezza_btn, altezza_btn)
             rect_impostazioni = pygame.Rect(cx, altezza_attuale // 2 + 160, larghezza_btn, altezza_btn)
             rect_uscita = pygame.Rect(cx, altezza_attuale // 2 + 270, larghezza_btn, altezza_btn)
-           
+
+            pulsanti = [rect_gioca, rect_impostazioni, rect_uscita]
+
             screen.blit(img_menu, (0, 0))
-           
-            # Pulsante GIOCA (verde)
-            col_gioca = (0, 180, 0) if rect_gioca.collidepoint(mouse_pos) else (0, 130, 0)
-            pygame.draw.rect(screen, col_gioca, rect_gioca, border_radius=15)
-            txt_gioca = font.render("GIOCA", True, (255, 255, 255))
-            screen.blit(txt_gioca, (rect_gioca.centerx - txt_gioca.get_width()//2, rect_gioca.centery - txt_gioca.get_height()//2))
-           
-            # Pulsante IMPOSTAZIONI (grigio)
-            col_impostazioni = (100, 100, 100) if rect_impostazioni.collidepoint(mouse_pos) else (70, 70, 70)
-            pygame.draw.rect(screen, col_impostazioni, rect_impostazioni, border_radius=15)
-            txt_impostazioni = font.render("IMPOSTAZIONI", True, (255, 255, 255))
-            screen.blit(txt_impostazioni, (rect_impostazioni.centerx - txt_impostazioni.get_width()//2, rect_impostazioni.centery - txt_impostazioni.get_height()//2))
-           
-            # Pulsante USCITA (rosso)
-            col_uscita = (180, 0, 0) if rect_uscita.collidepoint(mouse_pos) else (130, 0, 0)
-            pygame.draw.rect(screen, col_uscita, rect_uscita, border_radius=15)
-            txt_uscita = font.render("USCITA", True, (255, 255, 255))
-            screen.blit(txt_uscita, (rect_uscita.centerx - txt_uscita.get_width()//2, rect_uscita.centery - txt_uscita.get_height()//2))
-           
-            # Gestione click
-            for e in event:
-                if e.type == pygame.MOUSEBUTTONDOWN:
-                    if rect_gioca.collidepoint(e.pos):
-                        stato_gioco = "SELEZIONE_PERSONAGGIO"
-                    if rect_impostazioni.collidepoint(e.pos):
-                        stato_gioco = "IMPOSTAZIONI"
-                    if rect_uscita.collidepoint(e.pos):
-                        pygame.quit()
-                        sys.exit()
-        
+
+            # TESTO DESCRIZIONE
+            scrivi_testo_descrizione(stato_gioco)
+
+
+            for i, rect in enumerate(pulsanti):
+
+                # Colori normali
+                if i == 0:
+                    colore = (0, 130, 0)
+                elif i == 1:
+                    colore = (70, 70, 70)
+                else:
+                    colore = (130, 0, 0)
+
+                # Evidenzia selezione
+                if i == indice_menu:
+                    colore = (100, 200, 255)
+
+                pygame.draw.rect(screen, colore, rect, border_radius=15)
+
+                txt = font.render(voci_menu[i], True, (255, 255, 255))
+                screen.blit(txt, (
+                    rect.centerx - txt.get_width() // 2,
+                    rect.centery - txt.get_height() // 2
+                ))
+ 
         # --- SELEZIONA PERSONAGGIO ---
         elif stato_gioco == "SELEZIONE_PERSONAGGIO":
+            # AGGIORNAMENTO GIROSCOPIO
+            gyro.update()
+            gyro_value = gyro.get_xyz()
 
-            # Sfondo
+
+            if cooldown_gyro > 0:
+                cooldown_gyro -= 1
+
+            # CONTROLLO TESTA
+            if cooldown_gyro == 0:
+
+                # Cambio personaggio
+                if gyro_value["z"] > sogliaGYRO:
+                    indice_personaggio = (indice_personaggio - 1) % len(personaggi)
+                    indice_frame_personaggio = 0
+                    cooldown_gyro = 15
+                elif gyro_value["z"] < -sogliaGYRO:
+                    indice_personaggio = (indice_personaggio + 1) % len(personaggi)
+                    indice_frame_personaggio = 0
+                    cooldown_gyro = 15
+
+                # Conferma selezione con su/giu
+                elif gyro_value["y"] < -sogliaGYRO or gyro_value["y"] > sogliaGYRO:
+                    personaggio_corrente = personaggi[indice_personaggio]
+                    personaggio_scelto = personaggio_corrente["codice"]
+
+                    if personaggio_scelto == "M":
+                        anims_corrente = anims_M
+                        frames_animati = anim_M_forward
+                    elif personaggio_scelto == "F":
+                        anims_corrente = anims_F
+                        frames_animati = anim_F_forward
+
+                    stato_gioco = "SELEZIONE_LIVELLO"
+                    cooldown_gyro = 40
+
+            # DISEGNO PERSONAGGIO
             screen.blit(img_seleziona_personaggio, (0, 0))
 
-            # Rettangoli pulsanti
+            # TESTO DESCRIZIONE
+            scrivi_testo_descrizione(stato_gioco)
+
+            # Rettangoli frecce sinistra/destra (solo estetica)
             btn_sx = pygame.Rect(LARGHEZZA // 2 - 250, ALTEZZA // 2 - 60, 80, 80)
             btn_dx = pygame.Rect(LARGHEZZA // 2 + 170, ALTEZZA // 2 - 60, 80, 80)
-            btn_select = pygame.Rect(LARGHEZZA // 2 - 150, ALTEZZA // 2 + 200, 300, 80)
 
             # Personaggio corrente
             personaggio_corrente = personaggi[indice_personaggio]
@@ -291,10 +401,7 @@ def main():
                 rect_placeholder = pygame.Rect(LARGHEZZA // 2 - 100, ALTEZZA // 2 - 140, 200, 200)
                 pygame.draw.rect(screen, (200, 200, 200), rect_placeholder, border_radius=20)
 
-            # ===============================
-            # NOME PERSONAGGIO CON SFONDO + OMBRA
-            # ===============================
-
+            # Nome con sfondo e ombra
             txt_nome = font.render(personaggio_corrente["nome"], True, (0, 0, 0))
             rect_nome = txt_nome.get_rect(center=(LARGHEZZA // 2, 160))
 
@@ -302,116 +409,101 @@ def main():
             padding_y = 10
             ombra_offset = 6
 
-            # Rettangolo sfondo bianco
             rect_sfondo = pygame.Rect(
                 rect_nome.x - padding_x,
                 rect_nome.y - padding_y,
                 rect_nome.width + padding_x * 2,
                 rect_nome.height + padding_y * 2
             )
-
-            # Rettangolo ombra
             rect_ombra = rect_sfondo.copy()
             rect_ombra.x += ombra_offset
             rect_ombra.y += ombra_offset
 
-            # Disegno ombra (semi-trasparente)
             ombra_surface = pygame.Surface((rect_ombra.width, rect_ombra.height), pygame.SRCALPHA)
-            ombra_surface.fill((0, 0, 0, 100))  # nero con alpha
+            ombra_surface.fill((0, 0, 0, 100))
             screen.blit(ombra_surface, (rect_ombra.x, rect_ombra.y))
 
-            # Disegno rettangolo bianco sopra l’ombra
             pygame.draw.rect(screen, (255, 255, 255), rect_sfondo, border_radius=12)
-
-            # Disegno testo sopra tutto
             screen.blit(txt_nome, rect_nome)
 
-            # ===============================
-
-            # Pulsanti freccia
-            pygame.draw.rect(screen, (220, 220, 220), btn_sx, border_radius=15)
-            pygame.draw.rect(screen, (220, 220, 220), btn_dx, border_radius=15)
-
+            # Disegno frecce SX/DX (solo estetica)
             txt_sx = font.render("<", True, (0, 0, 0))
             txt_dx = font.render(">", True, (0, 0, 0))
-
+            pygame.draw.rect(screen, (220,220,220), btn_sx, border_radius=15)
+            pygame.draw.rect(screen, (220,220,220), btn_dx, border_radius=15)
             screen.blit(txt_sx, (btn_sx.centerx - txt_sx.get_width() // 2,
                                 btn_sx.centery - txt_sx.get_height() // 2))
-
             screen.blit(txt_dx, (btn_dx.centerx - txt_dx.get_width() // 2,
                                 btn_dx.centery - txt_dx.get_height() // 2))
 
-            # Pulsante selezione
-            pygame.draw.rect(screen, (0, 150, 0), btn_select, border_radius=20)
-            txt_sel = font.render("SELEZIONA", True, (255, 255, 255))
-
-            screen.blit(txt_sel,
-                        (btn_select.centerx - txt_sel.get_width() // 2,
-                        btn_select.centery - txt_sel.get_height() // 2))
-
-            # Gestione input mouse
-            for e in event:
-                if e.type == pygame.MOUSEBUTTONDOWN:
-                    if btn_sx.collidepoint(e.pos):
-                        indice_personaggio = (indice_personaggio - 1) % len(personaggi)
-                        indice_frame_personaggio = 0
-
-                    elif btn_dx.collidepoint(e.pos):
-                        indice_personaggio = (indice_personaggio + 1) % len(personaggi)
-                        indice_frame_personaggio = 0
-
-                    elif btn_select.collidepoint(e.pos):
-                        personaggio_scelto = personaggio_corrente["codice"]
-
-                        if personaggio_scelto == "M":
-                            anims_corrente = anims_M
-                            frames_animati = anim_M_forward
-                        elif personaggio_scelto == "F":
-                            anims_corrente = anims_F
-                            frames_animati = anim_F_forward
-
-                        stato_gioco = "SELEZIONE_LIVELLO"
-
         # --- SELEZIONA LIVELLO ---
         elif stato_gioco == "SELEZIONE_LIVELLO":
+            # AGGIORNAMENTO GIROSCOPIO
+            gyro.update()
+            gyro_value = gyro.get_xyz()
 
+            if cooldown_gyro > 0:
+                cooldown_gyro -= 1
+
+            # CONTROLLO TESTA
+            if cooldown_gyro == 0:
+
+                # Cambio livello con destra/sinistra (asse Z)
+                if gyro_value["z"] < -sogliaGYRO:
+                    indice_livello = (indice_livello + 1) % 3
+                    cooldown_gyro = 15
+
+                elif gyro_value["z"] > sogliaGYRO:
+                    indice_livello = (indice_livello - 1) % 3
+                    cooldown_gyro = 15
+
+                # Conferma con su/giu (asse Y come nel personaggio)
+                elif gyro_value["y"] < -sogliaGYRO or gyro_value["y"] > sogliaGYRO:
+                    livello_scelto = livelli_possibili[mappa_livelli[indice_livello]]
+                    stato_gioco = "INIZIALIZZA"
+                    cooldown_gyro = 40
+
+            # DISEGNO LIVELLI
             screen.blit(img_seleziona_livello, (0, 0))
 
-            mouse_pos = pygame.mouse.get_pos()
+            # TESTO DESCRIZIONE
+            scrivi_testo_descrizione("SELEZIONE_LIVELLO")
 
             pv_w, pv_h = 340, 210
             spacing = 70
             total_w = pv_w * 3 + spacing * 2
             start_x = LARGHEZZA // 2 - total_w // 2
-            y = ALTEZZA // 2 - pv_h // 2 + 80   # leggermente più in basso per lasciare spazio al titolo
+            y = ALTEZZA // 2 - pv_h // 2 + 80
 
-            # Ordine visivo (2 e 3 invertiti)
             previews = [preview1, preview3, preview2]
-
-            # Mappa reale dei livelli
             mappa_livelli = [0, 2, 1]
-
-            rects = []
 
             for i, pv in enumerate(previews):
 
                 x = start_x + i * (pv_w + spacing)
                 pv_scaled = pygame.transform.smoothscale(pv, (pv_w, pv_h))
-                rect = pygame.Rect(x, y, pv_w, pv_h)
-                rects.append(rect)
+                rect_preview = pygame.Rect(x, y, pv_w, pv_h)
 
-                # =============================
-                # SCRITTA SOPRA L'IMMAGINE
-                # =============================
+                screen.blit(pv_scaled, rect_preview)
 
-                txt = font.render(f"LIVELLO {i+1}", True, (0, 0, 0))
+                # Evidenzia livello selezionato
+                if i == indice_livello:
+                    pygame.draw.rect(screen, (0, 255, 0),
+                                    rect_preview.inflate(20, 20),
+                                    6, border_radius=20)
+                else:
+                    pygame.draw.rect(screen, (0, 0, 0),
+                                    rect_preview.inflate(10, 10),
+                                    3, border_radius=18)
+
+                # TESTO SOPRA IMMAGINE
+                txt = font.render(f"MAPPA {i+1}", True, (0, 0, 0))
                 rect_txt = txt.get_rect(center=(x + pv_w // 2, y - 50))
 
                 padding_x = 20
                 padding_y = 10
                 ombra_offset = 6
 
-                # Rettangolo bianco
                 rect_bg = pygame.Rect(
                     rect_txt.x - padding_x,
                     rect_txt.y - padding_y,
@@ -419,42 +511,16 @@ def main():
                     rect_txt.height + padding_y * 2
                 )
 
-                # Rettangolo ombra
                 rect_shadow = rect_bg.copy()
                 rect_shadow.x += ombra_offset
                 rect_shadow.y += ombra_offset
 
-                # Disegno ombra
                 shadow_surface = pygame.Surface((rect_shadow.width, rect_shadow.height), pygame.SRCALPHA)
                 shadow_surface.fill((0, 0, 0, 110))
                 screen.blit(shadow_surface, (rect_shadow.x, rect_shadow.y))
 
-                # Disegno rettangolo bianco
                 pygame.draw.rect(screen, (255, 255, 255), rect_bg, border_radius=14)
-
-                # Disegno testo
                 screen.blit(txt, rect_txt)
-
-                # =============================
-                # HIGHLIGHT HOVER
-                # =============================
-                if rect.collidepoint(mouse_pos):
-                    pygame.draw.rect(screen, (255, 200, 0), rect.inflate(16, 16), 5, border_radius=18)
-                else:
-                    pygame.draw.rect(screen, (0, 0, 0), rect.inflate(10, 10), 3, border_radius=18)
-
-                # Disegno preview
-                screen.blit(pv_scaled, (x, y))
-
-            # =============================
-            # GESTIONE CLICK
-            # =============================
-            for e in event:
-                if e.type == pygame.MOUSEBUTTONDOWN:
-                    for i, r in enumerate(rects):
-                        if r.collidepoint(e.pos):
-                            livello_scelto = livelli_possibili[mappa_livelli[i]]
-                            stato_gioco = "INIZIALIZZA"
 
         # --- INIZIALIZZA ---
         elif stato_gioco == "INIZIALIZZA":
@@ -579,20 +645,25 @@ def main():
 
         # --- IN GIOCO ---
         elif stato_gioco == "IN_GIOCO":
-            keys = pygame.key.get_pressed()  # Prendi lo stato di tutte le tastiere
-
-            player.gyro.update()
-            gyro = player.gyro.get_xyz()
+            #MUSICA
+            if livello_scelto == 1:
+                play_music(MUSIC_FILES["LIVELLO1"])
+            elif livello_scelto == 2:
+                play_music(MUSIC_FILES["LIVELLO2"])
+            else:
+                play_music(MUSIC_FILES["LIVELLO3"])
+            gyro.update()
+            gyro_value = gyro.get_xyz()
            
             # Gestione animazioni in base alla direzione
             if anims_corrente:
-                if gyro["y"] < -player.soglia:
+                if gyro_value["y"] < -sogliaGYRO:
                     player.frames = anims_corrente["up"]
-                elif gyro["y"] > player.soglia:
+                elif gyro_value["y"] > sogliaGYRO:
                     player.frames = anims_corrente["down"]
-                elif gyro["z"] > player.soglia:
+                elif gyro_value["z"] > sogliaGYRO:
                     player.frames = anims_corrente["left"]
-                elif gyro["z"] < -player.soglia:
+                elif gyro_value["z"] < -sogliaGYRO:
                     player.frames = anims_corrente["right"]
 
             player.eeg.update()
@@ -602,7 +673,7 @@ def main():
             raggio_luce = raggio_luce_min + beta_value * (raggio_luce_max - raggio_luce_min)
            
             # Calcola movimento in base a come muovi la testa
-            player.muovi(muri)
+            player.muovi(gyro_value, muri)
             if nemico1:
                 nemico1.muovi_auto(muri)
             if nemico2:
@@ -682,40 +753,37 @@ def main():
             # 4. Applichiamo la maschera sulla virtual_screen
             v_screen.blit(superficie_oscurita, (0, 0))
 
+            # TESTO DESCRIZIONE
+            scrivi_testo_descrizione(stato_gioco)
 
             # --- INTERFACCIA (UI) ---
             # Disegno finale
             screen.blit(pygame.transform.scale(v_screen, (LARGHEZZA, ALTEZZA)), (0, 0))
        
         elif stato_gioco == "DOMANDA_RISPOSTA":
-
-            # ---------------------------
             # AGGIORNAMENTO GIROSCOPIO
-            # ---------------------------
-            player.gyro.update()
-            gyro = player.gyro.get_xyz()
+            gyro.update()
+            gyro_value = gyro.get_xyz()
 
             if cooldown_gyro > 0:
                 cooldown_gyro -= 1
 
-            # ---------------------------
             # CONTROLLO TRAMITE TESTA
-            # ---------------------------
             if not mostra_feedback and cooldown_gyro == 0:
 
-                if gyro["y"] < -player.soglia:
+                if gyro_value["y"] < -sogliaGYRO:
                     indice_selezionato -= 1
                     if indice_selezionato < 0:
                         indice_selezionato = len(domanda_attiva["opzioni"]) - 1
                     cooldown_gyro = 15
 
-                elif gyro["y"] > player.soglia:
+                elif gyro_value["y"] > sogliaGYRO:
                     indice_selezionato += 1
                     if indice_selezionato >= len(domanda_attiva["opzioni"]):
                         indice_selezionato = 0
                     cooldown_gyro = 15
 
-                elif gyro["z"] < -player.soglia or gyro["z"] > player.soglia:
+                elif gyro_value["z"] < -sogliaGYRO or gyro_value["z"] > sogliaGYRO:
 
                     risposta_selezionata = indice_selezionato
                     feedback_colore = (
@@ -738,19 +806,18 @@ def main():
                         enemy_anim_timer = FPS * 2
                         enemy_anim_index = 0
 
-            # ---------------------------
             # DISEGNO SFONDO
-            # ---------------------------
             screen.blit(pygame.transform.scale(v_screen, (LARGHEZZA, ALTEZZA)), (0, 0))
+
+            # TESTO DESCRIZIONE
+            scrivi_testo_descrizione(stato_gioco)
 
             overlay = pygame.Surface((LARGHEZZA, ALTEZZA))
             overlay.set_alpha(80)
             overlay.fill((0, 0, 0))
             screen.blit(overlay, (0, 0))
 
-            # ---------------------------
             # FINESTRA DOMANDA
-            # ---------------------------
             larghezza_finestra = 650
             altezza_finestra = 400
             x_finestra = LARGHEZZA // 2 - larghezza_finestra // 2
@@ -766,9 +833,7 @@ def main():
             txt_domanda = font_domanda.render(domanda_attiva["testo"], True, (0, 0, 0))
             screen.blit(txt_domanda, (x_finestra + 30, y_finestra + 20))
 
-            # ---------------------------
             # OPZIONI
-            # ---------------------------
             font_opzioni = pygame.font.SysFont("Arial", 18)
             lettere = ['A', 'B', 'C', 'D']
 
@@ -801,9 +866,7 @@ def main():
                 screen.blit(txt_lettera, (x_opzione + 15, y_opzione + 10))
                 screen.blit(txt_opzione, (x_opzione + 60, y_opzione + 10))
 
-            # ---------------------------
             # TIMER FEEDBACK
-            # ---------------------------
             if mostra_feedback:
                 timer_feedback -= 1
                 if timer_feedback <= 0:
@@ -815,123 +878,160 @@ def main():
         
         # --- IMPOSTAZIONI ---
         elif stato_gioco == "IMPOSTAZIONI":
-            screen.fill((40, 40, 40))  # Sfondo grigio scuro
-            
+            # AGGIORNAMENTO GIROSCOPIO
+            gyro.update()
+            gyro_value = gyro.get_xyz()
+
+            if cooldown_gyro > 0:
+                cooldown_gyro -= 1
+
+            # CONTROLLO TESTA
+            if cooldown_gyro == 0:
+
+                # CAMBIO VOCE con SU/GIU (asse Y)
+                if gyro_value["y"] > sogliaGYRO:
+                    indice_impostazioni = (indice_impostazioni + 1) % 3
+                    cooldown_gyro = 15
+                elif gyro_value["y"] < -sogliaGYRO:
+                    indice_impostazioni = (indice_impostazioni - 1) % 3
+                    cooldown_gyro = 15
+
+                # SELEZIONE con DESTRA/SINISTRA (asse Z)
+                elif gyro_value["z"] > sogliaGYRO:
+                    if indice_impostazioni == 0:
+                        volume_audio = max(0.0, volume_audio - 0.05)
+                        pygame.mixer.music.set_volume(volume_audio)
+                    elif indice_impostazioni == 1:
+                        stato_gioco = "ISTRUZIONI"
+                    elif indice_impostazioni == 2:
+                        stato_gioco = "MENU_PRINCIPALE"
+                    cooldown_gyro = 20
+
+                elif gyro_value["z"] < -sogliaGYRO:
+                    if indice_impostazioni == 0:
+                        volume_audio = min(1.0, volume_audio + 0.05)
+                        pygame.mixer.music.set_volume(volume_audio)
+                    elif indice_impostazioni == 1:
+                        stato_gioco = "ISTRUZIONI"
+                    elif indice_impostazioni == 2:
+                        stato_gioco = "MENU_PRINCIPALE"
+                    cooldown_gyro = 20
+
+            # DISEGNO GRAFICA
+            screen.fill((40, 40, 40))
+
+            # TESTO DESCRIZIONE
+            scrivi_testo_descrizione(stato_gioco)
+
             font_titolo = pygame.font.SysFont("Arial", 60, bold=True)
             font_normale = pygame.font.SysFont("Arial", 30)
             font_piccolo = pygame.font.SysFont("Arial", 24)
-            
-            # Titolo centrato
+
             txt_titolo = font_titolo.render("IMPOSTAZIONI", True, (255, 255, 255))
             screen.blit(txt_titolo, (larghezza_attuale // 2 - txt_titolo.get_width() // 2, 180))
-            
+
             y_start = 350
             spacing = 120
-            
-            # Calibrazione Audio
+
+            # AUDIO
             txt_audio = font_normale.render("Audio:", True, (255, 255, 255))
-            screen.blit(txt_audio, (larghezza_attuale // 2 - txt_audio.get_width() // 2, y_start))
-            
+            rect_audio = txt_audio.get_rect(center=(larghezza_attuale // 2, y_start))
+
+            # Rettangolo verde / azzurro se selezionato
+            colore_audio_rect = (173, 216, 230) if indice_impostazioni == 0 else (0, 150, 0)  # azzurro chiaro se selezionato
+            rect_sfondo_audio = pygame.Rect(
+                rect_audio.x - 20,
+                rect_audio.y - 10,
+                rect_audio.width + 40,
+                rect_audio.height + 20
+            )
+            pygame.draw.rect(screen, colore_audio_rect, rect_sfondo_audio, border_radius=12)
+            screen.blit(txt_audio, rect_audio)
+
             # Slider volume
             slider_x = larghezza_attuale // 2 - 200
             slider_y = y_start + 50
             slider_w = 400
             slider_h = 30
             slider_rect = pygame.Rect(slider_x, slider_y, slider_w, slider_h)
+
             pygame.draw.rect(screen, (100, 100, 100), slider_rect)
             pygame.draw.rect(screen, (255, 255, 255), slider_rect, 2)
-            
-            # Indicatore volume
+
             indicator_x = slider_x + int(volume_audio * slider_w)
             pygame.draw.circle(screen, (255, 255, 255), (indicator_x, slider_y + slider_h // 2), 15)
-            pygame.draw.line(screen, (0, 200, 0), (slider_x, slider_y + slider_h // 2), 
-                           (indicator_x, slider_y + slider_h // 2), 4)
-            
-            # Valore volume (centrato sotto lo slider)
+            pygame.draw.line(screen, (0, 200, 0), (slider_x, slider_y + slider_h // 2), (indicator_x, slider_y + slider_h // 2), 4)
+
             txt_volume_val = font_piccolo.render(f"{int(volume_audio * 100)}%", True, (255, 255, 255))
             screen.blit(txt_volume_val, (larghezza_attuale // 2 - txt_volume_val.get_width() // 2, slider_y + slider_h + 10))
-            
-            # Pulsante Istruzioni
-            btn_istruzioni_w = 300
-            btn_istruzioni_h = 60
-            btn_istruzioni_x = larghezza_attuale // 2 - btn_istruzioni_w // 2
-            btn_istruzioni_y = y_start + spacing + 20
-            btn_istruzioni = pygame.Rect(btn_istruzioni_x, btn_istruzioni_y, btn_istruzioni_w, btn_istruzioni_h)
-            
-            col_istruzioni = (100, 100, 200) if btn_istruzioni.collidepoint(mouse_pos) else (70, 70, 150)
-            pygame.draw.rect(screen, col_istruzioni, btn_istruzioni, border_radius=15)
+
+            # ISTRUZIONI
             txt_istruzioni = font_normale.render("COME FUNZIONA", True, (255, 255, 255))
-            screen.blit(txt_istruzioni, (btn_istruzioni.centerx - txt_istruzioni.get_width() // 2, 
-                                        btn_istruzioni.centery - txt_istruzioni.get_height() // 2))
-            
-            # Pulsante Indietro (avvicinato al centro)
-            btn_indietro_w = 200
-            btn_indietro_h = 60
-            btn_indietro_x = larghezza_attuale // 2 - btn_indietro_w // 2
-            btn_indietro_y = altezza_attuale // 2 + 200
-            btn_indietro = pygame.Rect(btn_indietro_x, btn_indietro_y, btn_indietro_w, btn_indietro_h)
-            
-            col_indietro = (150, 0, 0) if btn_indietro.collidepoint(mouse_pos) else (100, 0, 0)
-            pygame.draw.rect(screen, col_indietro, btn_indietro, border_radius=15)
+            rect_istruzioni = txt_istruzioni.get_rect(center=(larghezza_attuale // 2, y_start + spacing + 50))
+
+            colore_istruzioni_rect = (173, 216, 230) if indice_impostazioni == 1 else (150, 150, 150)  # azzurro chiaro se selezionato
+            rect_sfondo_istruzioni = pygame.Rect(
+                rect_istruzioni.x - 20,
+                rect_istruzioni.y - 10,
+                rect_istruzioni.width + 40,
+                rect_istruzioni.height + 20
+            )
+            pygame.draw.rect(screen, colore_istruzioni_rect, rect_sfondo_istruzioni, border_radius=12)
+            screen.blit(txt_istruzioni, rect_istruzioni)
+
+            # INDIETRO
             txt_indietro = font_normale.render("INDIETRO", True, (255, 255, 255))
-            screen.blit(txt_indietro, (btn_indietro.centerx - txt_indietro.get_width() // 2, 
-                                      btn_indietro.centery - txt_indietro.get_height() // 2))
-            
-            # Gestione input
-            for e in event:
-                if e.type == pygame.MOUSEBUTTONDOWN:
-                    # Click su slider volume
-                    if slider_rect.collidepoint(e.pos):
-                        rel_x = e.pos[0] - slider_x
-                        volume_audio = max(0.0, min(1.0, rel_x / slider_w))
-                        pygame.mixer.music.set_volume(volume_audio)
-                    
-                    # Click su istruzioni
-                    elif btn_istruzioni.collidepoint(e.pos):
-                        stato_gioco = "ISTRUZIONI"
-                    
-                    # Click su indietro
-                    elif btn_indietro.collidepoint(e.pos):
-                        stato_gioco = "MENU_PRINCIPALE"
-            
-            # Gestione drag slider volume
-            mouse_buttons = pygame.mouse.get_pressed()
-            if mouse_buttons[0] and slider_rect.collidepoint(mouse_pos):
-                rel_x = mouse_pos[0] - slider_x
-                volume_audio = max(0.0, min(1.0, rel_x / slider_w))
-                pygame.mixer.music.set_volume(volume_audio)
+            rect_indietro = txt_indietro.get_rect(center=(larghezza_attuale // 2, altezza_attuale // 2 + 200))
+
+            colore_indietro_rect = (173, 216, 230) if indice_impostazioni == 2 else (200, 0, 0)  # azzurro chiaro se selezionato
+            rect_sfondo_indietro = pygame.Rect(
+                rect_indietro.x - 20,
+                rect_indietro.y - 10,
+                rect_indietro.width + 40,
+                rect_indietro.height + 20
+            )
+            pygame.draw.rect(screen, colore_indietro_rect, rect_sfondo_indietro, border_radius=12)
+            screen.blit(txt_indietro, rect_indietro)
+
         
-        # STATO: Istruzioni
+        # --- ISTRUZIONI ---
         elif stato_gioco == "ISTRUZIONI":
             screen.fill((40, 40, 40))  # Sfondo grigio scuro
-            
+
+            # TESTO DESCRIZIONE
+            scrivi_testo_descrizione(stato_gioco)
+
             font_titolo = pygame.font.SysFont("Arial", 60, bold=True)
             font_normale = pygame.font.SysFont("Arial", 28)
             font_piccolo = pygame.font.SysFont("Arial", 22)
-            
+
             # Titolo centrato
             txt_titolo = font_titolo.render("COME FUNZIONA IL GIOCO", True, (255, 255, 255))
             screen.blit(txt_titolo, (larghezza_attuale // 2 - txt_titolo.get_width() // 2, 120))
-            
+
             # Testo istruzioni
             istruzioni = [
                 "Benvenuto in TeaMaze!",
                 "",
                 "OBIETTIVO:",
-                "Raggiungi l'uscita del labirinto evitando i nemici.",
+                "- Raggiungi l'uscita del labirinto evitando i nemici.",
                 "",
                 "CONTROLLI:",
                 "- Muovi la testa nella direzione in cui desideri far andare il personaggio",
                 "- Concentrati per muovere il personaggio in quella direzione",
                 "",
                 "NEMICI:",
-                "Se un nemico ti cattura, dovrai rispondere a una domanda.",
-                "Rispondi correttamente per eliminare il nemico.",
-                "Rispondi sbagliato e tornerai all'inizio del livello.",
+                "- Se un nemico ti cattura, dovrai rispondere a una domanda.",
+                "- Rispondi correttamente per eliminare il nemico.",
+                "- Rispondi sbagliato e tornerai all'inizio del livello.",
+                "",
+                "DOMANDA:",
+                "- Muovi la testa su e giù per scegliere la risposta",
+                "- Muovi la testa a destra o a sinistra per confermare la risposta",
                 "",
                 "Buona fortuna!"
             ]
-            
+
             y_start = 200
             line_height = 35
             for i, riga in enumerate(istruzioni):
@@ -940,35 +1040,41 @@ def main():
                     font_uso = font_normale if (i == 0 or riga.endswith(":")) else font_piccolo
                     txt_riga = font_uso.render(riga, True, colore)
                     screen.blit(txt_riga, (larghezza_attuale // 2 - txt_riga.get_width() // 2, y_start + i * line_height))
-            
-            # Pulsante Indietro
-            btn_indietro_w = 200
-            btn_indietro_h = 60
-            btn_indietro_x = larghezza_attuale // 2 - btn_indietro_w // 2
-            btn_indietro_y = altezza_attuale - 200
-            btn_indietro = pygame.Rect(btn_indietro_x, btn_indietro_y, btn_indietro_w, btn_indietro_h)
-            
-            col_indietro = (150, 0, 0) if btn_indietro.collidepoint(mouse_pos) else (100, 0, 0)
-            pygame.draw.rect(screen, col_indietro, btn_indietro, border_radius=15)
-            txt_indietro = font_normale.render("INDIETRO", True, (255, 255, 255))
-            screen.blit(txt_indietro, (btn_indietro.centerx - txt_indietro.get_width() // 2, 
-                                      btn_indietro.centery - txt_indietro.get_height() // 2))
-            
-            # Gestione click
-            for e in event:
-                if e.type == pygame.MOUSEBUTTONDOWN:
-                    if btn_indietro.collidepoint(e.pos):
-                        stato_gioco = "IMPOSTAZIONI"
+
+            # GESTIONE GIROSCOPIO
+            gyro.update()
+            gyro_value = gyro.get_xyz()
+
+            if cooldown_gyro > 0:
+                cooldown_gyro -= 1
+
+            if cooldown_gyro == 0:
+                # Se la testa si muove in qualsiasi direzione → esci dallo stato ISTRUZIONI
+                if (abs(gyro_value["x"]) > sogliaGYRO or 
+                    abs(gyro_value["y"]) > sogliaGYRO or 
+                    abs(gyro_value["z"]) > sogliaGYRO):
+                    stato_gioco = "IMPOSTAZIONI"
+                    cooldown_gyro = 20
+
        
-        # STATO: Vittoria
+        # --- VITTORIA ---
         elif stato_gioco == "VITTORIA":
-            screen.fill((0, 80, 0))  # Sfondo verde scuro
-            txt = font.render("SEI FUGGITO!!!!!", True, (255, 255, 255))  # Testo vittoria bianco
+            screen.blit(img_vittoria, (0, 0))
+
+            # TESTO DESCRIZIONE
+            scrivi_testo_descrizione(stato_gioco)
+
+            txt = font.render("SEI FUGGITO!!!!!", True, (0, 0, 0))  # Testo vittoria bianco
             screen.blit(txt, (LARGHEZZA//2 - txt.get_width()//2, ALTEZZA//2 - 50))  # Disegna testo centrato
-            for e in event:  # Controlla input
-                if e.type == pygame.KEYDOWN and e.key == pygame.K_SPACE: stato_gioco = "MENU_PRINCIPALE"  # SPAZIO = ritorna al menu
+            player.gyro.update()
+            gyro_value = player.gyro.get_xyz()
 
-
+            if gyro_value["y"] > player.soglia or gyro_value["y"] < -player.soglia or gyro_value["z"] > player.soglia or gyro_value["y"] < -player.soglia:
+                stato_gioco = "MENU_PRINCIPALE"
+                cooldown_gyro = 0
+                # SVUOTO IL BUFFER DEL MUSE
+                gyro.clear_buffer()
+            
         # Aggiorna la finestra e limita FPS
         pygame.display.flip()  # Aggiorna il display
         clock.tick(FPS)  # Limita a 60 FPS

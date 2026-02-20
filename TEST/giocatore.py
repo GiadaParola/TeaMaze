@@ -18,7 +18,7 @@ class Giocatore:
         self.ultimo_frames = frames_animati  # Memorizza l'ultimo set di frame per rilevare il cambio
 
         # --- EEG ---
-        self.soglia_beta = 0.05
+        self.soglia_beta = 0.04
         self.direzione = 0
         self.eeg = MuseEEG()
         if self.eeg.connect():        
@@ -27,7 +27,7 @@ class Giocatore:
             print("Muse EEG non trovato, useremo valori simulati")
 
         # --- Gryo ---
-        self.soglia = 180
+        self.soglia = 170
         self.gyro = MuseGYRO()
         if self.gyro.connect():
             print("Muse GYRO pronto")
@@ -35,16 +35,12 @@ class Giocatore:
             print("Muse GYRO non trovato, useremo valori simulati")
 
 
-    def muovi(self, muri):
+    def muovi(self,gyro_mean,  muri):
         """Muove il giocatore controllato da EEG Beta e tastiera"""
 
         # --- Aggiorna buffer EEG ---
         self.eeg.update()
         band_powers = self.eeg.get_band_powers()
-
-        # --- Aggiorna buffer GYRO ---
-        self.gyro.update()
-        gyro_mean = self.gyro.get_xyz()
 
         # --- Soglia Beta ---
         beta = band_powers.get('Beta', 0)
@@ -53,13 +49,13 @@ class Giocatore:
 
         # --- Cambia direzione con i tasti ---
         print(f"GYRO: {gyro_mean}")
-        if gyro_mean["y"] > self.soglia: #giu
+        if gyro_mean["y"] > self.soglia: #DOWN
             self.direzione = 0
         elif gyro_mean["y"] < -self.soglia: #UP
             self.direzione = 2
-        elif gyro_mean["z"] > self.soglia: #sx
+        elif gyro_mean["z"] > self.soglia: #LEFT
             self.direzione = 1
-        elif gyro_mean["z"] < -self.soglia: #dx
+        elif gyro_mean["z"] < -self.soglia: #RIGHT
             self.direzione = 3
 
 

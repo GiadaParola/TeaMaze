@@ -94,3 +94,9 @@ class Muse:
         if len(data) == 0:
             return np.zeros(self.n_channels)
         return data[-1]
+
+    def clear_buffer(self):
+        """Svuota il buffer."""
+        self.buffer.data[:] = 0          # azzera tutti i dati
+        self.buffer.write_pos = 0        # resetta la posizione di scrittura
+        self.buffer.full = False         # indica che il buffer non è pieno
